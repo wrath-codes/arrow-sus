@@ -1,0 +1,22 @@
+[project]
+name = "arrow-sus-rs"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Raphael Vaz", email = "raphael@wrath.codes" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+arrow-sus-rs = "arrow_sus_rs:main"
+
+[tool.maturin]
+module-name = "arrow_sus_rs._core"
+python-packages = ["arrow_sus_rs"]
+python-source = "src"
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
