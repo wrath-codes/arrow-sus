@@ -7,6 +7,16 @@ requires-python = ">=3.13"
 dependencies = []
 
 [tool.uv.workspace]
-members = [
-    "arrow-sus-rs",
-]
+members = ["arrow-sus-rs"]
+
+[dependency-groups]
+dev = ["polylith-cli>=1.30.1"]
+
+# PolyLith
+# Build has to be done with hatch
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+# Make UV and Hatch aware of the PolyLith workspace
+[tool.hatch.build]
+dev-mode-dirs = ["components", "bases", "development", "."]
