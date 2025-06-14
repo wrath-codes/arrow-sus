@@ -21,10 +21,12 @@ repos:
   hooks:
   # Run the linter.
   - id: ruff
+    name: 🩸 ruff · lint
     types_or: [ python, pyi ]
     args: [ --fix ]
   # Run the formatter.
   - id: ruff-format
+    name: 🔧 ruff · format
     types_or: [ python, pyi ]
 
 # Data & Config Validation 
@@ -81,6 +83,7 @@ repos:
   rev: v9.1.4
   hooks:
   - id: oxipng
+    name: 🖼️ images · optimize
     args: [ "-o", "4", "--strip", "safe", "--alpha" ]
 
 # Dependency management
