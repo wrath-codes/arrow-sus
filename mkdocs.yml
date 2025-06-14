@@ -1,0 +1,181 @@
+site_name: Arrow Sus Docs
+nav:
+- Home: index.md
+- About: about.md
+- API: api_ref/
+- User Guide: user_guide/
+- Getting Started: user_guide/getting_started.md
+- Contributing: contributing.md
+theme:
+  name: material
+  language: pt-BR
+  features:
+  - navigation.path
+  - navigation.instant
+  - navigation.instant.progress
+  - navigation.footer
+  - navigation.indexes
+  - navigation.sections
+  - navigation.tracking
+  - navigation.top
+  - content.tabs.link
+  - content.code.annotate
+  - content.code.copy
+  - content.tooltips
+  - search.highlight
+  - search.suggest
+  - search.share
+  - toc.follow
+  palette:
+  # Palette toggle for light mode
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    primary: deep purple
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
+
+  # Palette toggle for dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: deep purple
+    icon:
+      annotation: material/mdi-lightbulb-on-outline
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
+
+exclude_docs: |
+  /tests/
+  */__pycache__/*
+  */.venv/
+
+plugins:
+- search
+- autorefs:
+    resolve_closest: true
+- gen-files:
+    scripts: # - scripts/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- section-index
+- mkdocstrings:
+    default_handler: python
+    handlers:
+      python:
+        import:
+        - https://docs.python.org/3.12/objects.inv
+        - https://returns.readthedocs.io/en/latest/objects.inv
+        - https://docs.pola.rs/api/python/stable/objects.inv
+        - https://pandas.pydata.org/docs/objects.inv
+        - https://docs.sqlalchemy.org/en/20/objects.inv
+        - https://sfu-db.github.io/connector-x/objects.inv
+        - https://docs.pydantic.dev/latest/objects.inv
+        - https://rich.readthedocs.io/en/stable/objects.inv
+        - https://docs.pydantic.dev/latest/objects.inv
+        - https://aioftp.aio-libs.org/objects.inv
+        load_external_modules: true
+        paths:
+        options:
+          templates: material
+          enable_inventory: true
+          exclude_patterns:
+          filters:
+          - "!^_"
+          - "^__"
+          preload_modules:
+          - asyncio
+          - typing
+          - async_object
+          selection:
+            inherited_members: false
+          rendering:
+            show_root_members_full_path: false
+            show_object_full_path: false
+            show_root_full_path: false
+            show_category_heading: false
+          annotations_path: brief
+          docstring_style: google
+          docstring_section_style: table
+          show_bases: true
+          show_source: true
+          show_labels: true
+          heading_level: 2
+          members: true
+          inherited_members: false
+          show_inheritance: false
+          summary:
+            functions: true
+            classes: true
+            attributes: false
+            modules: false
+          modernize_annotations: true
+          members_order: source
+          allow_inspection: false
+          find_stubs_package: true
+          group_by_category: true
+          show_root_heading: true
+          show_root_toc_entry: false
+          show_docstring_modules: true
+          show_docstring: true
+          show_if_no_docstring: false
+          show_object_full_path: false
+          parameter_headings: false
+          line_length: 88
+          show_signature: true
+          show_signature_annotations: true
+          separate_signature: true
+          signature_crossrefs: true
+          relative_crossrefs: true
+          scoped_crossrefs: true
+          show_inheritance_diagram: true
+          show_submodules: false
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+          merge_init_into_class: true
+          docstring_options:
+            ignore_init_summary: true
+          markdown_extensions:
+          - griffe_fieldz
+          - griffe_modernized-annotations
+          - griffe_autodocstringstyle
+          - griffe_pydantic:
+              schema: true
+extra_css:
+- css/code_selects.css
+- css/mkdocstrings.css
+
+extra_javascript:
+- https://unpkg.com/mermaid@10.9.0/dist/mermaid.min.js
+
+markdown_extensions:
+- tables
+- attr_list
+
+- pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji ""
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg ""
+- abbr
+- md_in_html
+- pymdownx.highlight:
+    anchor_linenums: true
+    line_spans: __span
+    use_pygments: true
+    pygments_lang_class: true
+- pymdownx.inlinehilite
+- pymdownx.snippets
+- pymdownx.superfences:
+    custom_fences:
+    - name: mermaid
+      class: mermaid
+      format: !!python/name:pymdownx.superfences.fence_code_format ""
+- admonition
+- codehilite
+- pymdownx.details
+- toc:
+    title: Conteúdo
+    toc_depth: 5
+    permalink: "¤"
+
+- pymdownx.tabbed:
+    alternate_style: true
