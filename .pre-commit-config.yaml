@@ -76,7 +76,7 @@ repos:
   rev: v2.0.0-beta.5 # Use the sha / tag you want to point at
   hooks:
   - id: biome-check
-    name: "🟨 javascript · Lint, format, and safe fixes with Biome"
+    name: "🕸️ javascript · Lint, format, and safe fixes with Biome"
 
 # Optimize images
 - repo: https://github.com/shssoichiro/oxipng
