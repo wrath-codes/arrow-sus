@@ -162,14 +162,14 @@ class SimpleAlignedFormatter(logging.Formatter):
 
     # Level-specific icons (same as CatppuccinFormatter)
     LEVEL_ICONS = {
-        5: "🔍",  # TRACE
-        logging.DEBUG: "🐛",  # DEBUG
-        logging.INFO: "ℹ️",  # INFO
-        22: "✅",  # SUCCESS
-        25: "📢",  # NOTICE
-        logging.WARNING: "⚠️",  # WARNING
-        logging.ERROR: "❌",  # ERROR
-        logging.CRITICAL: "🚨",  # CRITICAL
+        5: "",  # TRACE
+        logging.DEBUG: "",  # DEBUG
+        logging.INFO: "󰋽",  # INFO
+        22: "",  # SUCCESS
+        25: "󰯪",  # NOTICE
+        logging.WARNING: "",  # WARNING
+        logging.ERROR: "",  # ERROR
+        logging.CRITICAL: "󰚤",  # CRITICAL
     }
 
     @override
@@ -177,9 +177,9 @@ class SimpleAlignedFormatter(logging.Formatter):
         def _format_level_padded(level_name: str) -> str:
             icon = self.LEVEL_ICONS.get(record.levelno, "📝")  # Default icon
             if len(level_name) <= self.LEVEL_WIDTH:
-                return f"{icon}[{level_name:<{self.LEVEL_WIDTH}}]"
+                return f"[{icon} {level_name:<{self.LEVEL_WIDTH}}]"
             else:
-                return f"{icon}[{level_name[: self.LEVEL_WIDTH]}]"
+                return f"[{icon} {level_name[: self.LEVEL_WIDTH]}]"
 
         def _format_extras(record) -> str:
             """Format extra fields without colors."""
@@ -274,14 +274,14 @@ class CatppuccinFormatter(logging.Formatter):
 
     # Level-specific icons (same as CatppuccinFormatter)
     LEVEL_ICONS = {
-        5: "🔍",  # TRACE
-        logging.DEBUG: "🐛",  # DEBUG
-        logging.INFO: "ℹ️",  # INFO
-        22: "✅",  # SUCCESS
-        25: "📢",  # NOTICE
-        logging.WARNING: "⚠️",  # WARNING
-        logging.ERROR: "❌",  # ERROR
-        logging.CRITICAL: "🚨",  # CRITICAL
+        5: "",  # TRACE
+        logging.DEBUG: "",  # DEBUG
+        logging.INFO: "󰋽",  # INFO
+        22: "",  # SUCCESS
+        25: "󰯪",  # NOTICE
+        logging.WARNING: "",  # WARNING
+        logging.ERROR: "",  # ERROR
+        logging.CRITICAL: "󰚤",  # CRITICAL
     }
 
     TIME_COLOR = CATPPUCCIN["TEXT"]
@@ -291,9 +291,9 @@ class CatppuccinFormatter(logging.Formatter):
         def _format_level_padded(level_name: str) -> str:
             icon = self.LEVEL_ICONS.get(record.levelno, "📝")  # Default icon
             if len(level_name) <= self.LEVEL_WIDTH:
-                return f"{level_color}{icon}[{level_name:<{self.LEVEL_WIDTH}}]{CATPPUCCIN['RESET']}"
+                return f"{level_color}[{icon} {level_name:<{self.LEVEL_WIDTH}}]{CATPPUCCIN['RESET']}"
             else:
-                return f"{level_color}{icon}[{level_name[: self.LEVEL_WIDTH]}]{CATPPUCCIN['RESET']}"
+                return f"{level_color}[{icon} {level_name[: self.LEVEL_WIDTH]}]{CATPPUCCIN['RESET']}"
 
         def _format_extras(record) -> str:
             """Format extra fields with field names in level color and values in message color."""
