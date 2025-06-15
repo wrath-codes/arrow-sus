@@ -5,6 +5,7 @@ description = "Blazingly fast project to interact with SUS(Brazilian Unified Hea
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "orjson>=3.10.18",
     "polars>=1.30.0",
     "pre-commit>=4.2.0",
     "pydantic>=2.11.6",

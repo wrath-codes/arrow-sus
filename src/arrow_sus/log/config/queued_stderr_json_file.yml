@@ -1,0 +1,47 @@
+version: 1
+disable_existing_loggers: false
+formatters:
+  simple:
+    (): arrow_sus.log.logger.SimpleAlignedFormatter
+    datefmt: "%Y-%m-%d %H:%M:%S"
+  json:
+    (): arrow_sus.log.logger.JSONFormatter
+    fmt_keys:
+      level: levelname
+      message: message
+      timestamp: timestamp
+      logger: name
+      module: module
+      function: funcName
+      line: lineno
+      thread_name: threadName
+filters:
+  verbose_filter:
+    (): arrow_sus.log.logger.VerboseFilter
+  non_error_filter:
+    (): arrow_sus.log.logger.NonErrorFilter
+handlers:
+  stderr:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: simple
+    stream: ext://sys.stderr
+  file_json:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: json
+    filename: a_sus_logs/my_app.log.jsonl
+    maxBytes: 10000
+    backupCount: 3
+    encoding: utf-8
+  queue_handler:
+    class: logging.handlers.QueueHandler
+    handlers:
+    - stderr
+    - file_json
+    respect_handler_level: true
+loggers:
+  root:
+    level: DEBUG
+    handlers:
+    - queue_handler

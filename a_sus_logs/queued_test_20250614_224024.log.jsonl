@@ -1,0 +1,5 @@
+{"level":"INFO","message":"Logging to file: a_sus_logs/queued_test_20250614_224024.log.jsonl","timestamp":"2025-06-15T01:40:24.200776+00:00","logger":"test_queued","module":"logger","function":"setup_logging","line":362,"thread_name":"MainThread"}
+{"level":"DEBUG","message":"Queued debug message with data: {'queue': 'test'}","timestamp":"2025-06-15T01:40:24.200802+00:00","logger":"test_queued","module":"test_logger","function":"test_queued_logging","line":71,"thread_name":"MainThread"}
+{"level":"INFO","message":"Queued info message","timestamp":"2025-06-15T01:40:24.200824+00:00","logger":"test_queued","module":"test_logger","function":"test_queued_logging","line":72,"thread_name":"MainThread"}
+{"level":"WARNING","message":"Queued warning message","timestamp":"2025-06-15T01:40:24.200832+00:00","logger":"test_queued","module":"test_logger","function":"test_queued_logging","line":73,"thread_name":"MainThread"}
+{"level":"ERROR","message":"Queued error message","timestamp":"2025-06-15T01:40:24.200837+00:00","logger":"test_queued","module":"test_logger","function":"test_queued_logging","line":74,"thread_name":"MainThread"}
