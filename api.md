@@ -60,6 +60,7 @@ Arrow SUS provides a unified, lazy-first API for accessing Brazilian health data
 - [ ] Rust compute modules
 - [ ] Streaming operations
 - [ ] Distributed processing
+- [ ] Multi Storage integration
 
 ## Core API Design
 
