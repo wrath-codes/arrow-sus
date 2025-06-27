@@ -1,0 +1,890 @@
+{
+	"datasets": {
+		"sih-rd": {
+			"name": "RD - AIH Reduzida",
+			"source": "sih",
+			"directories": ["/SIHSUS/199201_200712/Dados", "/SIHSUS/200801_/Dados"],
+			"filename_prefix": "RD",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sih-rj": {
+			"name": "RJ - AIH Rejeitadas",
+			"source": "sih",
+			"directories": ["/SIHSUS/200801_/Dados"],
+			"filename_prefix": "RJ",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sih-sp": {
+			"name": "SP - Servi\u00e7os Profissionais",
+			"source": "sih",
+			"directories": ["/SIHSUS/199201_200712/Dados", "/SIHSUS/200801_/Dados"],
+			"filename_prefix": "SP",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sih-er": {
+			"name": "ER - AIH Rejeitadas com c\u00f3digo de erro",
+			"source": "sih",
+			"directories": ["/SIHSUS/200801_/Dados"],
+			"filename_prefix": "ER",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sinasc-dn": {
+			"name": "Declara\u00e7\u00f5es de nascidos vivos",
+			"source": "sinasc",
+			"directories": [
+				"/SINASC/1994_1995/Dados/DNRES",
+				"/SINASC/1996_/Dados/DNRES",
+				"/SINASC/PRELIM/DNRES"
+			],
+			"filename_prefix": "DNR",
+			"filename_pattern": "uf_year4"
+		},
+		"sinasc-dnex": {
+			"name": "Declara\u00e7\u00f5es de nascidos vivos no exterior",
+			"source": "sinasc",
+			"directories": ["/SINASC/1996_/Dados/DNRES"],
+			"filename_prefix": "DNEX",
+			"filename_pattern": "year4"
+		},
+		"sim-do-cid09": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito CID-9",
+			"source": "sim",
+			"directories": ["/SIM/CID9/DORES"],
+			"filename_prefix": "DOR",
+			"filename_pattern": "uf_year2"
+		},
+		"sim-do-cid10": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito CID-10",
+			"source": "sim",
+			"directories": ["/SIM/CID10/DORES", "/SIM/PRELIM/DORES"],
+			"filename_prefix": "DO",
+			"filename_pattern": "uf_year4"
+		},
+		"sim-doext-cid09": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito Externas CID-9",
+			"source": "sim",
+			"directories": ["/SIM/CID9/DOFET"],
+			"filename_prefix": "DOEXT",
+			"filename_pattern": "(\\d{2})"
+		},
+		"sim-doext-cid10": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito Externas CID-10",
+			"source": "sim",
+			"directories": ["/SIM/CID10/DOFET"],
+			"filename_prefix": "DOEXT",
+			"filename_pattern": "(\\d{2})"
+		},
+		"sim-dofet-cid09": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito Fetais CID-9",
+			"source": "sim",
+			"directories": ["/SIM/CID9/DOFET"],
+			"filename_prefix": "DOFET",
+			"filename_pattern": "(\\d{2})"
+		},
+		"sim-dofet-cid10": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito Fetais CID-10",
+			"source": "sim",
+			"directories": ["/SIM/CID10/DOFET"],
+			"filename_prefix": "DOFET",
+			"filename_pattern": "(\\d{2})"
+		},
+		"sim-doinf-cid09": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito Infantis CID-9",
+			"source": "sim",
+			"directories": ["/SIM/CID9/DOFET"],
+			"filename_prefix": "DOINF",
+			"filename_pattern": "(\\d{2})"
+		},
+		"sim-doinf-cid10": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bito Infantis CID-10",
+			"source": "sim",
+			"directories": ["/SIM/CID10/DOFET"],
+			"filename_prefix": "DOINF",
+			"filename_pattern": "(\\d{2})"
+		},
+		"sim-domat-cid10": {
+			"name": "Declara\u00e7\u00f5es de \u00d3bitos Maternos CID-10",
+			"source": "sim",
+			"directories": ["/SIM/CID10/DOFET"],
+			"filename_prefix": "DOMAT",
+			"filename_pattern": "(\\d{2})"
+		},
+		"sim-dorext-cid10": {
+			"name": "Mortalidade de Residentes no Exterior CID-10",
+			"source": "sim",
+			"directories": ["/SIM/CID10/DOFET"],
+			"filename_prefix": "DOREXT",
+			"filename_pattern": "(\\d{2})"
+		},
+		"cnes-dc": {
+			"name": "Dados Complementares",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/DC"],
+			"filename_prefix": "DC",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-ee": {
+			"name": "Estabelecimento de Ensino",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/EE"],
+			"filename_prefix": "EE",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-ef": {
+			"name": "Estabelecimento Filantr\u00f3pico",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/EF"],
+			"filename_prefix": "EF",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-ep": {
+			"name": "Equipes",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/EP"],
+			"filename_prefix": "EP",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-eq": {
+			"name": "Equipamentos",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/EQ"],
+			"filename_prefix": "EQ",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-gm": {
+			"name": "Gest\u00e3o e Metas",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/GM"],
+			"filename_prefix": "GM",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-hb": {
+			"name": "Habilita\u00e7\u00e3o",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/HB"],
+			"filename_prefix": "HB",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-in": {
+			"name": "Incentivos",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/IN"],
+			"filename_prefix": "IN",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-lt": {
+			"name": "Leitos",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/LT"],
+			"filename_prefix": "LT",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-pf": {
+			"name": "Profissional",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/PF"],
+			"filename_prefix": "PF",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-rc": {
+			"name": "Regra Contratual",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/RC"],
+			"filename_prefix": "RC",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-sr": {
+			"name": "Servi\u00e7o Especializado",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/SR"],
+			"filename_prefix": "SR",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cnes-st": {
+			"name": "Estabelecimentos",
+			"source": "cnes",
+			"directories": ["/CNES/200508_/Dados/ST"],
+			"filename_prefix": "ST",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-ab": {
+			"name": "APAC de Acompanhamento a Cirurgia Bari\u00e1trica",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "AB",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-abo": {
+			"name": "APAC Acompanhamento P\u00f3s Cirurgia Bari\u00e1trica",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "ABO",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-acf": {
+			"name": "APAC Confe\u00e7\u00e3o de F\u00edstula Arteriovenosa",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "ACF",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-ad": {
+			"name": "APAC de Laudos Diversos",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "AD",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-am": {
+			"name": "APAC de Medicamentos",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "AM",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-an": {
+			"name": "APAC de Nefrologia",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "AN",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-aq": {
+			"name": "APAC de Quimioterapia",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "AQ",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-ar": {
+			"name": "APAC de Radioterapia",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "AR",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-atd": {
+			"name": "APAC de Tratamento Dial\u00edtico",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "ATD",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-pa": {
+			"name": "Produ\u00e7\u00e3o Ambulatorial",
+			"source": "sia",
+			"directories": ["/SIASUS/199407_200712/Dados", "/SIASUS/200801_/Dados"],
+			"filename_prefix": "PA",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-ps": {
+			"name": "Psicossocial",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "PS",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sia-sad": {
+			"name": "Aten\u00e7\u00e3o Domiciliar",
+			"source": "sia",
+			"directories": ["/SIASUS/200801_/Dados"],
+			"filename_prefix": "SAD",
+			"filename_pattern": "uf_year2_month"
+		},
+		"cih-cr": {
+			"name": "Comunica\u00e7\u00e3o de Interna\u00e7\u00e3o Hospitalar",
+			"source": "cih",
+			"directories": ["/CIH/200801_201012/Dados"],
+			"filename_prefix": "CR",
+			"filename_pattern": "uf_year2_month"
+		},
+		"ciha": {
+			"name": "Sistema de Comunica\u00e7\u00e3o de Informa\u00e7\u00e3o Hospitalar e Ambulatorial",
+			"source": "ciha",
+			"directories": ["/CIHA/201101_/Dados"],
+			"filename_prefix": "CIHA",
+			"filename_pattern": "uf_year2_month"
+		},
+		"resp": {
+			"name": "Notifica\u00e7\u00f5es de casos suspeitos de SCZ",
+			"source": "resp",
+			"directories": ["/RESP/DADOS"],
+			"filename_prefix": "RESP",
+			"filename_pattern": "uf_year2"
+		},
+		"sisprenatal-pn": {
+			"name": "Pr\u00e9-Natal",
+			"source": "sisprenatal",
+			"directories": ["/SISPRENATAL/201201_/Dados"],
+			"filename_prefix": "PN",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sinan-acbi": {
+			"name": "Acidente de trabalho com material biol\u00f3gico",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ACBI",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-acgr": {
+			"name": "Acidente de trabalho",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ACGR",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-anim": {
+			"name": "Acidente por Animais Pe\u00e7onhentos",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ANIM",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-antr": {
+			"name": "Atendimento Antirr\u00e1bico",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ANTR",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-botu": {
+			"name": "Botulismo",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "BOTU",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-canc": {
+			"name": "C\u00e2ncer relacionado ao trabalho",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "CANC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-chag": {
+			"name": "Doen\u00e7a de Chagas Aguda",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "CHAG",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-chik": {
+			"name": "Febre de Chikungunya",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "CHIK",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-cole": {
+			"name": "C\u00f3lera",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "COLE",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-coqu": {
+			"name": "Coqueluche",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "COQU",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-deng": {
+			"name": "Dengue",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "DENG",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-derm": {
+			"name": "Dermatoses ocupacionais",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "DERM",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-dift": {
+			"name": "Difteria",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "DIFT",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-esqu": {
+			"name": "Esquistossomose",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ESQU",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-fmac": {
+			"name": "Febre Maculosa",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "FMAC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-ftif": {
+			"name": "Febre Tifoide",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "FTIF",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-hans": {
+			"name": "Hansen\u00edase",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "HANS",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-hant": {
+			"name": "Hantavirose",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "HANT",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-hepa": {
+			"name": "Hepatites Virais",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "HEPA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-iexo": {
+			"name": "Intoxica\u00e7\u00e3o Ex\u00f3gena",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "IEXO",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-leiv": {
+			"name": "Leishmaniose Visceral",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "LEIV",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-lept": {
+			"name": "Leptospirose",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "LEPT",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-lerd": {
+			"name": "LER/Dort",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "LERD",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-ltan": {
+			"name": "Leishmaniose Tegumentar Americana",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "LTAN",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-mala": {
+			"name": "Mal\u00e1ria",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "MALA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-meni": {
+			"name": "Meningite",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "MENI",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-ment": {
+			"name": "Transtornos mentais relacionados ao trabalho",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "MENT",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-pair": {
+			"name": "Perda auditiva por ru\u00eddo relacionado ao trabalho",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "PAIR",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-pest": {
+			"name": "Peste",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "PEST",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-pfan": {
+			"name": "Paralisia Fl\u00e1cida Aguda",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "PFAN",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-pneu": {
+			"name": "Pneumoconioses relacionadas ao trabalho",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "PNEU",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-raiv": {
+			"name": "Raiva",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "RAIV",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-sifa": {
+			"name": "S\u00edfilis Adquirida",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "SIFA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-sifc": {
+			"name": "S\u00edfilis Cong\u00eanita",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "SIFC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-sifg": {
+			"name": "S\u00edfilis em Gestante",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "SIFG",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-teta": {
+			"name": "T\u00e9tano Acidental",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "TETA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-tetn": {
+			"name": "T\u00e9tano Neonatal",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "TETN",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-tube": {
+			"name": "Tuberculose",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "TUBE",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-viol": {
+			"name": "Viol\u00eancia dom\u00e9stica, sexual e/ou outras viol\u00eancias",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "VIOL",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-zika": {
+			"name": "Zika V\u00edrus",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ZIKA",
+			"filename_pattern": "uf_year2"
+		},
+		"base-populacional-ibge-pop": {
+			"name": "POP - Censo e Estimativas",
+			"source": "base-populacional-ibge",
+			"directories": ["/IBGE/POP"],
+			"filename_prefix": "POP",
+			"filename_pattern": "uf_year2"
+		},
+		"base-populacional-ibge-pops": {
+			"name": "POPS - Estimativas por Sexo e Idade",
+			"source": "base-populacional-ibge",
+			"directories": ["/IBGE/POPSVS"],
+			"filename_prefix": "POPS",
+			"filename_pattern": "uf_year2"
+		},
+		"base-populacional-ibge-popt": {
+			"name": "POPT - Estimativas TCU",
+			"source": "base-populacional-ibge",
+			"directories": ["/IBGE/POPTCU"],
+			"filename_prefix": "POPT",
+			"filename_pattern": "uf_year2"
+		},
+		"base-territorial-mapas": {
+			"name": "Base Territorial - Mapas",
+			"source": "base-territorial",
+			"directories": ["/territorio/mapas"],
+			"filename_prefix": "",
+			"filename_pattern": "uf_mapas_year"
+		},
+		"base-territorial": {
+			"name": "Base Territorial",
+			"source": "base-territorial",
+			"directories": ["/territorio/tabelas"],
+			"filename_prefix": "",
+			"filename_pattern": ""
+		},
+		"base-territorial-conversao": {
+			"name": "Base Territorial - Convers\u00e3o",
+			"source": "base-territorial",
+			"directories": ["/territorio/conversoes"],
+			"filename_prefix": "",
+			"filename_pattern": "uf_cnv"
+		},
+		"pce": {
+			"name": "Programa de Controle da Esquistossomose",
+			"source": "pce",
+			"directories": ["/PCE/DADOS"],
+			"filename_prefix": "PCE",
+			"filename_pattern": "uf_year2"
+		},
+		"po": {
+			"name": "Painel de Oncologia",
+			"source": "po",
+			"directories": ["/PAINEL_ONCOLOGIA/DADOS"],
+			"filename_prefix": "PO",
+			"filename_pattern": "uf_year4"
+		},
+		"siscolo-cc": {
+			"name": "Citopatol\u00f3gico de Colo de \u00datero",
+			"source": "siscolo",
+			"directories": ["/SISCAN/SISCOLO4/Dados"],
+			"filename_prefix": "CC",
+			"filename_pattern": "uf_year2_month"
+		},
+		"siscolo-hc": {
+			"name": "Histopatol\u00f3gico de Colo de \u00datero",
+			"source": "siscolo",
+			"directories": ["/SISCAN/SISCOLO4/Dados"],
+			"filename_prefix": "HC",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sismama-cm": {
+			"name": "Citopatol\u00f3gico de Mama",
+			"source": "sismama",
+			"directories": ["/SISCAN/SISMAMA/Dados"],
+			"filename_prefix": "CM",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sismama-hm": {
+			"name": "Histopatol\u00f3gico de Mama",
+			"source": "sismama",
+			"directories": ["/SISCAN/SISMAMA/Dados"],
+			"filename_prefix": "HM",
+			"filename_pattern": "uf_year2_month"
+		},
+		"sinan-exan": {
+			"name": "Doen\u00e7as exantem\u00e1ticas",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "EXAN",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-ntra": {
+			"name": "Notifica\u00e7\u00e3o de Tracoma",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "NTRA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-sdta": {
+			"name": "Surto Doen\u00e7as Transmitidas por Alimentos",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "SDTA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-src": {
+			"name": "S\u00edndrome da Rub\u00e9ola Cong\u00eanita",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "SRC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-toxc": {
+			"name": "Toxoplasmose Cong\u00eanita",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "TOXC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-toxg": {
+			"name": "Toxoplasmose Gestacional",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "TOXG",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-trac": {
+			"name": "Inqu\u00e9rito de Tracoma",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "TRAC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-varc": {
+			"name": "Varicela",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "VARC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-aida": {
+			"name": "AIDS em adultos",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "AIDA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-aidc": {
+			"name": "AIDS em crian\u00e7as",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "AIDC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-espo": {
+			"name": "Esporotricose (Epizootia)",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ESPO",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-hiva": {
+			"name": "HIV em adultos",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "HIVA",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-hivc": {
+			"name": "HIV em crian\u00e7as",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "HIVC",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-hive": {
+			"name": "HIV em crian\u00e7as expostas",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "HIVE",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-hivg": {
+			"name": "HIV em gestante",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "HIVG",
+			"filename_pattern": "uf_year2"
+		},
+		"sinan-rota": {
+			"name": "Rotav\u00edrus",
+			"source": "sinan",
+			"directories": ["/SINAN/DADOS/FINAIS", "/SINAN/DADOS/PRELIM"],
+			"filename_prefix": "ROTA",
+			"filename_pattern": "uf_year2"
+		}
+	},
+	"documentation": {
+		"base-populacional-ibge": {
+			"directories": ["/IBGE/DOC"]
+		},
+		"base-territorial": {
+			"directories": ["/territorio/doc"]
+		},
+		"cmd": {
+			"directories": ["/CMD/201701_/doc"]
+		},
+		"ciha": {
+			"directories": ["/CIHA/201101_/Doc"]
+		},
+		"cnes": {
+			"directories": ["/CNES/200508_/doc"]
+		},
+		"pce": {
+			"directories": ["/PCE/DOCS/"]
+		},
+		"po": {
+			"directories": ["/PAINEL_ONCOLOGIA/DOC"]
+		},
+		"resp": {
+			"directories": ["/RESP/DOCS"]
+		},
+		"sia": {
+			"directories": ["/SIASUS/200801_/Doc"]
+		},
+		"sih": {
+			"directories": ["/SIHSUS/200801_/Doc"]
+		},
+		"sim": {
+			"directories": ["/SIM/CID9/DOCS", "/SIM/CID10/DOCS"]
+		},
+		"sinan": {
+			"directories": ["/SINAN/DOCS"]
+		},
+		"sinasc": {
+			"directories": ["/SINASC/ANT/DOCS", "/SINASC/NOV/DOCS"]
+		}
+	},
+	"auxiliary_tables": {
+		"base-populacional-ibge": {
+			"directories": ["/IBGE/Auxiliar"]
+		},
+		"cih": {
+			"directories": ["/CIH/200801_201012/Auxiliar"]
+		},
+		"ciha": {
+			"directories": ["/CIHA/201101_/Auxiliar"]
+		},
+		"cmd": {
+			"directories": ["/CMD/201701_/Auxiliar"]
+		},
+		"cnes": {
+			"directories": ["/CNES/200508_/Auxiliar"]
+		},
+		"pce": {
+			"directories": ["/PCE/AUXILIAR"]
+		},
+		"po": {
+			"directories": ["/PAINEL_ONCOLOGIA/AUXILIAR"]
+		},
+		"resp": {
+			"directories": ["/RESP/AUXILIAR"]
+		},
+		"sia": {
+			"directories": ["/SIASUS/200801_/Auxiliar"]
+		},
+		"sih": {
+			"directories": ["/SIHSUS/200801_/Auxiliar"]
+		},
+		"sim": {
+			"directories": ["/SIM/CID9/TAB", "/SIM/CID10/TAB"]
+		},
+		"sinan": {
+			"directories": ["/SINAN/AUXILIAR"]
+		},
+		"sinasc": {
+			"directories": ["/SINASC/1994_1995/Auxiliar", "/SINASC/1996_/Auxiliar"]
+		},
+		"siscolo": {
+			"directories": ["/SISCAN/SISCOLO4/Auxiliar"]
+		},
+		"sismama": {
+			"directories": ["/SISCAN/SISMAMA/Auxiliar"]
+		},
+		"sisprenatal": {
+			"directories": ["/SISPRENATAL/201201_/Auxiliar"]
+		}
+	}
+}
