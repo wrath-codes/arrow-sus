@@ -56,6 +56,7 @@ Attributes:
     CacheEntry: Model for cached data with TTL support
 """
 
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -582,6 +583,18 @@ class RemoteFile(BaseModel):
             ```
         """
         return cls.model_validate(orjson.loads(data))
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RemoteFile":
+        """Create RemoteFile from dictionary data.
+
+        Args:
+            data: Dictionary containing file metadata
+
+        Returns:
+            RemoteFile instance
+        """
+        return cls.model_validate(data)
 
 
 class SubsystemInfo(BaseModel):
@@ -1172,3 +1185,27 @@ class CacheEntry(BaseModel):
         """
         delta = self.expires_at - datetime.utcnow()
         return max(0, int(delta.total_seconds()))
+
+
+@dataclass
+class SourceMetadata:
+    """Metadata for a DATASUS source system (SIA, SIH, CNES, etc.)."""
+
+    name: str
+    description: str
+    groups: List[str]
+    files: List[RemoteFile]
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SourceMetadata":
+        """Create SourceMetadata from dictionary data."""
+        files = []
+        for file_data in data.get("files", []):
+            files.append(RemoteFile.from_dict(file_data))
+
+        return cls(
+            name=data["name"],
+            description=data.get("description", ""),
+            groups=data.get("groups", []),
+            files=files,
+        )

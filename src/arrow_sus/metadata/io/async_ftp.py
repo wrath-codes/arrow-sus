@@ -734,13 +734,13 @@ class AsyncFTPClient:
     ) -> List[RemoteFile]:
         """List files from a single directory."""
         try:
-            # Use optimized listing with limits for performance
+            # Use optimized listing with higher limits for complete discovery
             files = await self.list_directory(
                 directory,
                 max_depth=2,
                 use_cache=use_cache,
-                max_files=1000,  # Reasonable limit
-                timeout=30.0,
+                max_files=50000,  # High limit for complete file discovery
+                timeout=120.0,  # Longer timeout for large directories
             )
 
             remote_files = []

@@ -844,6 +844,23 @@ class TieredCache:
             "disk": disk_stats if not isinstance(disk_stats, Exception) else None,
         }
 
+    async def save_source_systems(self, source_systems: dict) -> "Result[None, Any]":
+        """Save source systems to cache."""
+        try:
+            await self.set("source_systems", source_systems)
+            from returns.result import Success
+
+            return Success(None)
+        except Exception as e:
+            from arrow_sus.metadata.core.errors import DatasusError
+            from returns.result import Failure
+
+            return Failure(DatasusError(f"Failed to save source systems: {e}"))
+
+    async def get_source_systems(self) -> "Optional[dict]":
+        """Get source systems from cache."""
+        return await self.get("source_systems")
+
     async def close(self):
         """Close both caches."""
         await self.memory_cache.close()

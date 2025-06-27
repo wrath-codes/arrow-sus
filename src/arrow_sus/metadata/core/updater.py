@@ -9,10 +9,13 @@ from typing import Any, Dict, List, Optional, Set
 
 import aiofiles
 import orjson
+from returns.result import Result, Success, Failure
+from returns.maybe import Nothing, Some
 
 from ..io.async_ftp import AsyncFTPClient
 from ..utils.cache import DiskCache, LRUCache, TieredCache
 from .config import DataSUSConfig
+from .errors import DatasusError
 from .models import (
     DataPartition,
     DatasetMetadata,
@@ -452,6 +455,58 @@ class MetadataUpdater:
     async def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache performance statistics."""
         return await self.cache.get_stats()
+
+    async def extract_metadata(self) -> Result[dict, DatasusError]:
+        """Extract metadata from mappings.py and build cache structure."""
+        try:
+            from arrow_sus.metadata.data.mappings import datasets
+
+            # Convert datasets to our source system structure
+            source_systems = {}
+
+            for dataset_id, dataset_info in datasets.items():
+                source = dataset_info["source"]
+
+                if source not in source_systems:
+                    source_systems[source] = {
+                        "name": source.upper(),
+                        "type": self._determine_system_type(source),
+                        "groups": {},
+                    }
+
+                # Extract group from dataset_id (e.g., "sia-pa" -> "pa")
+                if "-" in dataset_id:
+                    _, group = dataset_id.split("-", 1)
+                else:
+                    group = dataset_id
+
+                source_systems[source]["groups"][group] = {
+                    "name": dataset_info["name"],
+                    "periods": dataset_info["periods"],
+                    "partition": dataset_info.get("partition", []),
+                }
+
+            # Save to cache
+            cache_result = await self.cache.save_source_systems(source_systems)
+            if isinstance(cache_result, Failure):
+                return cache_result
+
+            return Success(source_systems)
+
+        except Exception as e:
+            return Failure(DatasusError(f"Failed to extract metadata: {e}"))
+
+    def _determine_system_type(self, source: str) -> str:
+        """Determine system type based on source name."""
+        monthly_systems = {"sia", "sih", "cnes", "cih", "ciha", "sisprenatal"}
+        yearly_systems = {"sinasc", "sim", "sinan"}
+
+        if source in monthly_systems:
+            return "monthly"
+        elif source in yearly_systems:
+            return "yearly"
+        else:
+            return "other"
 
     async def close(self):
         """Close all resources."""

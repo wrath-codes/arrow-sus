@@ -39,33 +39,47 @@ class DataSUSConfig(BaseSettings):
         from pathlib import Path
 
         metadata_file = (
-            Path(__file__).parent.parent.parent.parent / "extracted_metadata.json"
+            Path(__file__).parent.parent.parent.parent.parent
+            / "extracted_metadata_by_source.json"
         )
         if metadata_file.exists():
             with open(metadata_file, "rb") as f:
                 extracted_data = orjson.loads(f.read())
-                # Convert the simplified format to our expected format
+                # Convert the source-based format to our expected format
                 datasets = {}
-                for dataset_id, dataset_info in extracted_data["datasets"].items():
-                    directories = dataset_info.get("directories", [])
-                    periods = []
-                    for directory in directories:
-                        period = {
-                            "dir": f"/dissemin/publicos{directory}",
-                        }
-                        if "filename_prefix" in dataset_info:
-                            period["filename_prefix"] = dataset_info["filename_prefix"]
-                        if "filename_pattern" in dataset_info:
-                            period["filename_pattern"] = dataset_info[
-                                "filename_pattern"
-                            ]
-                        periods.append(period)
+                for source_id, source_info in extracted_data.get("sources", {}).items():
+                    for group_id, group_info in source_info.get("groups", {}).items():
+                        # Create a dataset entry for each source-group combination
+                        dataset_id = f"{source_id}-{group_id.lower()}"
 
-                    datasets[dataset_id] = {
-                        "name": dataset_info["name"],
-                        "source": dataset_info["source"],
-                        "periods": periods,
-                    }
+                        # Convert group periods to dataset periods
+                        periods = []
+                        for period_config in group_info.get("periods", []):
+                            period = {
+                                "dir": f"/dissemin/publicos{period_config['directory']}",
+                            }
+                            # Use period-specific metadata
+                            if "filename_prefix" in period_config:
+                                period["filename_prefix"] = period_config[
+                                    "filename_prefix"
+                                ]
+                            if "filename_pattern" in period_config:
+                                period["filename_pattern"] = period_config[
+                                    "filename_pattern"
+                                ]
+                            if "extension" in period_config:
+                                period["extension"] = period_config["extension"]
+                            periods.append(period)
+
+                        datasets[dataset_id] = {
+                            "name": f"{source_info['name']} - {group_id}",
+                            "source": source_id,
+                            "periods": periods,
+                            "file_organization": source_info.get(
+                                "file_organization", "unknown"
+                            ),
+                            "group": group_id,
+                        }
                 return datasets
 
         # Fallback to original small dataset list

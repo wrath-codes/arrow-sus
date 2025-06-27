@@ -650,6 +650,45 @@ class DataSUSMetadataClient:
 
         return matching_files
 
+    async def get_source_metadata(
+        self,
+        source_name: str,
+        category: str = "data",
+    ) -> Optional["SourceMetadata"]:
+        """Get source metadata for a specific source system.
+
+        Args:
+            source_name: Name of the source system (sia, sih, cnes, etc.)
+            category: Dataset category
+
+        Returns:
+            SourceMetadata if found, None otherwise
+        """
+        # Load enhanced source-based metadata with actual files
+        source_config_path = self.cache_dir / "enhanced_metadata_by_source.json"
+        if not source_config_path.exists():
+            return None
+
+        try:
+            import orjson
+
+            with open(source_config_path, "r", encoding="utf-8") as f:
+                sources_data = orjson.loads(f.read())
+
+            # Find the source within the "sources" key
+            sources = sources_data.get("sources", {})
+            source_data = sources.get(source_name.lower())
+            if not source_data:
+                return None
+
+            # Convert to SourceMetadata model
+            from arrow_sus.metadata.core.models import SourceMetadata
+
+            return SourceMetadata.from_dict(source_data)
+
+        except Exception as e:
+            return None
+
     async def get_dataset_stats(
         self,
         dataset_name: str,
