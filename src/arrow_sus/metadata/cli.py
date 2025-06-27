@@ -21,6 +21,9 @@ from .core.models import UFCode, DatasetSource
 from .core.updater import MetadataUpdater
 from .systems.monthly_system import MonthlyDatasusSystem
 from .systems.yearly_system import YearlyDatasusSystem
+from .systems.pce_system import PCEDatasusSystem
+from .systems.po_system import PODatasusSystem
+from .systems.siscolo_system import SISCOLODatasusSystem
 from .utils.validation import validate_search_params, ValidationError
 from returns.result import Success, Failure
 
@@ -50,15 +53,27 @@ def create_client(
 
 
 def _determine_system_type(source: str) -> str:
-    """Determine if a source uses monthly or yearly organization."""
+    """Determine if a source uses monthly, yearly, or special organization."""
     monthly_systems = {"sia", "sih", "cnes", "cih", "ciha", "sisprenatal"}
     yearly_systems = {"sinasc", "sim", "sinan", "resp"}
+    pce_systems = {"pce"}
+    po_systems = {"po"}
+    siscolo_systems = {"siscolo"}
+    other_systems = {"sismama", "base-territorial", "base-populacional-ibge"}
 
     source_lower = source.lower()
     if source_lower in yearly_systems:
         return "yearly"
     elif source_lower in monthly_systems:
         return "monthly"
+    elif source_lower in pce_systems:
+        return "pce"
+    elif source_lower in po_systems:
+        return "po"
+    elif source_lower in siscolo_systems:
+        return "siscolo"
+    elif source_lower in other_systems:
+        return "other"
     else:
         # Default to monthly for unknown systems
         return "monthly"
@@ -258,22 +273,104 @@ def search_system(
                         f"[yellow]Yearly systems organize data by year only[/yellow]"
                     )
                     return
+                elif system_type == "pce" and month is not None:
+                    console.print(
+                        f"[red]Error: Month parameter not supported for PCE system '{source}'[/red]"
+                    )
+                    console.print(
+                        f"[yellow]PCE system organizes data by year only[/yellow]"
+                    )
+                    return
+                elif system_type == "pce" and group is not None:
+                    console.print(
+                        f"[red]Error: Group parameter not supported for PCE system '{source}'[/red]"
+                    )
+                    console.print(
+                        f"[yellow]PCE system has only one data group[/yellow]"
+                    )
+                    return
+                elif system_type == "po" and month is not None:
+                    console.print(
+                        f"[red]Error: Month parameter not supported for PO system '{source}'[/red]"
+                    )
+                    console.print(
+                        f"[yellow]PO system organizes data by year only[/yellow]"
+                    )
+                    return
+                elif system_type == "po" and group is not None:
+                    console.print(
+                        f"[red]Error: Group parameter not supported for PO system '{source}'[/red]"
+                    )
+                    console.print(f"[yellow]PO system has only one data group[/yellow]")
+                    return
+                elif system_type == "other":
+                    console.print(
+                        f"[red]Error: System '{source}' requires special handling[/red]"
+                    )
+                    console.print(
+                        f"[yellow]This system type is not yet fully implemented[/yellow]"
+                    )
+                    console.print(
+                        f"[cyan]Supported systems: sia, sih, cnes, sinasc, sinan, sim, resp, pce, po, siscolo[/cyan]"
+                    )
+                    return
 
                 if system_type == "yearly":
                     system = YearlyDatasusSystem(source_metadata, client)
+                elif system_type == "pce":
+                    system = PCEDatasusSystem()
+                elif system_type == "po":
+                    system = PODatasusSystem()
+                elif system_type == "siscolo":
+                    system = SISCOLODatasusSystem()
                 else:
                     system = MonthlyDatasusSystem(source_metadata, client)
 
                 # Build filters dict based on system type
                 filters = {}
-                if group:
-                    filters["group"] = group
-                if uf:
-                    filters["uf"] = uf
-                if year:
-                    filters["year"] = year
-                if month and system_type == "monthly":
-                    filters["month"] = month
+                if system_type == "pce":
+                    # PCE uses different filter structure
+                    from .utils.filters import PCEFilters
+
+                    pce_filters = {}
+                    if uf:
+                        pce_filters["uf"] = uf
+                    if year:
+                        pce_filters["year"] = year
+                    filters = pce_filters if pce_filters else None
+                elif system_type == "po":
+                    # PO uses different filter structure
+                    from .utils.filters import POFilters
+
+                    po_filters = {}
+                    if uf:
+                        po_filters["uf"] = uf
+                    if year:
+                        po_filters["year"] = year
+                    filters = po_filters if po_filters else None
+                elif system_type == "siscolo":
+                    # SISCOLO uses different filter structure
+                    from .utils.filters import SISCOLOFilters
+
+                    siscolo_filters = {}
+                    if group:
+                        siscolo_filters["group"] = group
+                    if uf:
+                        siscolo_filters["uf"] = uf
+                    if year:
+                        siscolo_filters["year"] = year
+                    if month:
+                        siscolo_filters["month"] = month
+                    filters = siscolo_filters if siscolo_filters else None
+                else:
+                    if group:
+                        filters["group"] = group
+                    if uf:
+                        filters["uf"] = uf
+                    if year:
+                        filters["year"] = year
+                    if month and system_type == "monthly":
+                        filters["month"] = month
 
                 # Use the Result-based system
                 with Progress(
@@ -291,7 +388,14 @@ def search_system(
                         total=None,
                     )
 
-                    result = await system.get_files(**filters)
+                    if system_type == "pce":
+                        result = await system.discover_files(filters)
+                    elif system_type == "po":
+                        result = await system.discover_files(filters)
+                    elif system_type == "siscolo":
+                        result = await system.discover_files(filters)
+                    else:
+                        result = await system.get_files(**filters)
 
                     progress.remove_task(task)
 
@@ -300,28 +404,113 @@ def search_system(
                         # Convert files to JSON serializable format
                         files_data = []
                         files_to_process = files[:limit] if limit else files
-                        for file in files_to_process:
-                            file_dict = {
-                                "filename": file.filename,
-                                "size_mb": file.size_mb,
-                                "full_path": file.full_path,
-                                "dataset": file.dataset,
-                            }
-                            if file.partition:
-                                partition_dict = {
-                                    "uf": file.partition.uf.value
-                                    if file.partition.uf
-                                    else None,
-                                    "year": file.partition.year,
+
+                        if system_type == "pce":
+                            # PCE returns FileEntry dictionaries
+                            from .utils.pce.pce_file_parser import parse_pce_filename
+
+                            for file_entry in files_to_process:
+                                file_dict = {
+                                    "filename": file_entry["filename"],
+                                    "size_mb": round(
+                                        file_entry["size"] / (1024 * 1024), 2
+                                    ),
+                                    "full_path": file_entry["full_path"],
+                                    "dataset": "pce",
                                 }
-                                # Only add month for monthly systems
-                                if (
-                                    hasattr(file.partition, "month")
-                                    and file.partition.month is not None
-                                ):
-                                    partition_dict["month"] = file.partition.month
-                                file_dict.update(partition_dict)
-                            files_data.append(file_dict)
+                                # Parse filename to add metadata
+                                parse_result = parse_pce_filename(
+                                    file_entry["filename"]
+                                )
+                                if isinstance(parse_result, Success):
+                                    parsed = parse_result.unwrap()
+                                    file_dict.update(
+                                        {
+                                            "uf": parsed.uf,
+                                            "year": parsed.year,
+                                            "group": parsed.group,
+                                        }
+                                    )
+                                files_data.append(file_dict)
+                        elif system_type == "po":
+                            # PO returns FileEntry dictionaries
+                            from .utils.po.po_file_parser import parse_po_filename
+
+                            for file_entry in files_to_process:
+                                file_dict = {
+                                    "filename": file_entry["filename"],
+                                    "size_mb": round(
+                                        file_entry["size"] / (1024 * 1024), 2
+                                    ),
+                                    "full_path": file_entry["full_path"],
+                                    "dataset": "po",
+                                }
+                                # Parse filename to add metadata
+                                parse_result = parse_po_filename(file_entry["filename"])
+                                if isinstance(parse_result, Success):
+                                    parsed = parse_result.unwrap()
+                                    file_dict.update(
+                                        {
+                                            "uf": parsed.uf,
+                                            "year": parsed.year,
+                                            "group": parsed.group,
+                                        }
+                                    )
+                                files_data.append(file_dict)
+                        elif system_type == "siscolo":
+                            # SISCOLO returns FileEntry dictionaries
+                            from .utils.siscolo.siscolo_file_parser import (
+                                parse_siscolo_filename,
+                            )
+
+                            for file_entry in files_to_process:
+                                file_dict = {
+                                    "filename": file_entry["filename"],
+                                    "size_mb": round(
+                                        file_entry["size"] / (1024 * 1024), 2
+                                    ),
+                                    "full_path": file_entry["full_path"],
+                                    "dataset": "siscolo",
+                                }
+                                # Parse filename to add metadata
+                                parse_result = parse_siscolo_filename(
+                                    file_entry["filename"]
+                                )
+                                if isinstance(parse_result, Success):
+                                    parsed = parse_result.unwrap()
+                                    file_dict.update(
+                                        {
+                                            "uf": parsed.uf,
+                                            "year": parsed.year,
+                                            "month": parsed.month,
+                                            "group": parsed.group,
+                                        }
+                                    )
+                                files_data.append(file_dict)
+                        else:
+                            # Monthly/Yearly systems return objects
+                            for file in files_to_process:
+                                file_dict = {
+                                    "filename": file.filename,
+                                    "size_mb": file.size_mb,
+                                    "full_path": file.full_path,
+                                    "dataset": file.dataset,
+                                }
+                                if file.partition:
+                                    partition_dict = {
+                                        "uf": file.partition.uf.value
+                                        if file.partition.uf
+                                        else None,
+                                        "year": file.partition.year,
+                                    }
+                                    # Only add month for monthly systems
+                                    if (
+                                        hasattr(file.partition, "month")
+                                        and file.partition.month is not None
+                                    ):
+                                        partition_dict["month"] = file.partition.month
+                                    file_dict.update(partition_dict)
+                                files_data.append(file_dict)
 
                         if json_output:
                             print(
@@ -331,11 +520,10 @@ def search_system(
                             )
                         else:
                             # Display the files in a table
-                            files_to_show = files[:limit] if limit else files
                             title_parts = [source.upper()]
-                            if group:
+                            if group and system_type not in ("pce", "po"):
                                 title_parts.append(group.upper())
-                            title = f"{'-'.join(title_parts)} Files ({len(files_to_show)} files)"
+                            title = f"{'-'.join(title_parts)} Files ({len(files_data)} files)"
 
                             # Determine display mode
                             is_interactive = not json_output and len(files) > 10
@@ -355,7 +543,7 @@ def search_system(
 
                                 console.print(f"\n[bold]{title}[/bold]")
                                 console.print(
-                                    f"Found: [yellow]{len(files_to_show)}[/yellow] files"
+                                    f"Found: [yellow]{len(files_data)}[/yellow] files"
                                 )
                                 console.print(
                                     f"Total size: [blue]{total_size:.1f} MB[/blue]"

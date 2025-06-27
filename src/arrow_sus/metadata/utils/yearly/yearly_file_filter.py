@@ -235,6 +235,12 @@ async def filter_yearly_files(
                 "/dissemin/publicos/SINAN/DADOS/PRELIM",
             ],
             "resp": ["/dissemin/publicos/RESP/DADOS"],
+            "pce": ["/dissemin/publicos/PCE"],
+            "po": ["/dissemin/publicos/PO"],
+            "siscolo": ["/dissemin/publicos/SISCOLO"],
+            "sismama": ["/dissemin/publicos/SISMAMA"],
+            "base-territorial": ["/dissemin/publicos/TERRITORIO"],
+            "base-populacional-ibge": ["/dissemin/publicos/IBGE"],
         }
 
         directories_to_scan = source_directories.get(source_name, [])

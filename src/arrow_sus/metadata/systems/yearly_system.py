@@ -195,17 +195,27 @@ class YearlyDatasusSystem(DatasusSystem):
         """Determine source name from metadata."""
         name_lower = self.source_metadata.name.lower()
 
-        # Map common yearly system patterns to source names
-        if "nascidos vivos" in name_lower or "sinasc" in name_lower:
+        # Map actual source names from our metadata to source codes
+        if "nascidos vivos" in name_lower:
             return "sinasc"
-        elif (
-            "óbito" in name_lower or "mortalidade" in name_lower or "sim" in name_lower
-        ):
+        elif "mortalidade" in name_lower:
             return "sim"
-        elif "notificação" in name_lower or "sinan" in name_lower:
+        elif "agravos de notificação" in name_lower:
             return "sinan"
-        elif "resp" in name_lower or "síndrome congênita" in name_lower:
+        elif "atenção psicossocial" in name_lower:
             return "resp"
+        elif "esquistossomose" in name_lower:
+            return "pce"
+        elif "olhar brasil" in name_lower:
+            return "po"
+        elif "colo do útero" in name_lower:
+            return "siscolo"
+        elif "câncer de mama" in name_lower:
+            return "sismama"
+        elif "territorial" in name_lower:
+            return "base-territorial"
+        elif "populacional" in name_lower or "ibge" in name_lower:
+            return "base-populacional-ibge"
         else:
             # Fallback: try to extract from dataset if available
             if hasattr(self.source_metadata, "source"):

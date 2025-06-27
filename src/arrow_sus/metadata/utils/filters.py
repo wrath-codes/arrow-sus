@@ -41,11 +41,37 @@ class SourceFilters(TypedDict, total=False):
     month: Union[int, str, List[Union[int, str]]]
 
 
+class PCEFilters(TypedDict, total=False):
+    """Filters for PCE (Programa de Controle da Esquistossomose) system."""
+
+    uf: Union[str, List[str]]
+    year: Union[int, str, List[Union[int, str]]]
+
+
+class POFilters(TypedDict, total=False):
+    """Filters for PO (Painel de Oncologia) system."""
+
+    uf: Union[str, List[str]]
+    year: Union[int, str, List[Union[int, str]]]
+
+
+class SISCOLOFilters(TypedDict, total=False):
+    """Filters for SISCOLO (Sistema de Informação de Câncer do Colo do Útero) system."""
+
+    group: Union[str, List[str]]
+    uf: Union[str, List[str]]
+    year: Union[int, str, List[Union[int, str]]]
+    month: Union[int, str, List[Union[int, str]]]
+
+
 # Valid filter keys for each filter type
 VALID_MONTHLY_FILTERS: Set[str] = {"group", "uf", "year", "month"}
 VALID_LATEST_FILTERS: Set[str] = {"group", "states", "months", "current_year"}
 VALID_YEARLY_FILTERS: Set[str] = {"group", "uf", "year"}
 VALID_SOURCE_FILTERS: Set[str] = {"source", "group", "uf", "year", "month"}
+VALID_PCE_FILTERS: Set[str] = {"uf", "year"}
+VALID_PO_FILTERS: Set[str] = {"uf", "year"}
+VALID_SISCOLO_FILTERS: Set[str] = {"group", "uf", "year", "month"}
 
 
 __all__ = [
@@ -53,8 +79,14 @@ __all__ = [
     "LatestFilters",
     "YearlyFilters",
     "SourceFilters",
+    "PCEFilters",
+    "POFilters",
+    "SISCOLOFilters",
     "VALID_MONTHLY_FILTERS",
     "VALID_LATEST_FILTERS",
     "VALID_YEARLY_FILTERS",
     "VALID_SOURCE_FILTERS",
+    "VALID_PCE_FILTERS",
+    "VALID_PO_FILTERS",
+    "VALID_SISCOLO_FILTERS",
 ]
