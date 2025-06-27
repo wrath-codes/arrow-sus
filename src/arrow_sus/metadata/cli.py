@@ -20,6 +20,7 @@ from .core.config import DataSUSConfig, CacheConfig, PerformanceConfig
 from .core.models import UFCode, DatasetSource
 from .core.updater import MetadataUpdater
 from .systems.monthly_system import MonthlyDatasusSystem
+from .systems.yearly_system import YearlyDatasusSystem
 from .utils.validation import validate_search_params, ValidationError
 from returns.result import Success, Failure
 
@@ -46,6 +47,21 @@ def create_client(
         performance_config=performance_config,
         cache_dir=cache_dir,
     )
+
+
+def _determine_system_type(source: str) -> str:
+    """Determine if a source uses monthly or yearly organization."""
+    monthly_systems = {"sia", "sih", "cnes", "cih", "ciha", "sisprenatal"}
+    yearly_systems = {"sinasc", "sim", "sinan", "resp"}
+
+    source_lower = source.lower()
+    if source_lower in yearly_systems:
+        return "yearly"
+    elif source_lower in monthly_systems:
+        return "monthly"
+    else:
+        # Default to monthly for unknown systems
+        return "monthly"
 
 
 @app.command()
@@ -200,11 +216,15 @@ def dataset_info(
 
 @app.command()
 def search_system(
-    source: str = typer.Argument(..., help="Source system (sia, sih, cnes, etc.)"),
-    group: str = typer.Argument(..., help="Group/prefix (PA, RD, ER, etc.)"),
+    source: str = typer.Argument(
+        ..., help="Source system (sia, sih, cnes, sinasc, sinan, sim, etc.)"
+    ),
+    group: Optional[str] = typer.Argument(
+        None, help="Group/prefix (PA, RD, ER for monthly; DN, DENG, DO for yearly)"
+    ),
     uf: Optional[str] = typer.Option(None, help="UF code"),
     year: Optional[int] = typer.Option(None, help="Year"),
-    month: Optional[int] = typer.Option(None, help="Month"),
+    month: Optional[int] = typer.Option(None, help="Month (only for monthly systems)"),
     limit: Optional[int] = typer.Option(
         None, help="Maximum number of results (default: no limit)"
     ),
@@ -214,7 +234,7 @@ def search_system(
         False, "--detailed", help="Show detailed file list even in interactive mode"
     ),
 ):
-    """Search files using Result-based system like your monthly_sus_system.py."""
+    """Search files using Result-based system for both monthly and yearly systems."""
 
     async def _search_source():
         async with create_client(cache_dir=cache_dir) as client:
@@ -226,16 +246,33 @@ def search_system(
                     console.print(f"[red]Source '{source}' not found[/red]")
                     return
 
-                # Create monthly system with client for live FTP discovery
-                system = MonthlyDatasusSystem(source_metadata, client)
+                # Determine system type and create appropriate system
+                system_type = _determine_system_type(source)
 
-                # Build filters dict
-                filters = {"group": group}
+                # Validate parameters based on system type
+                if system_type == "yearly" and month is not None:
+                    console.print(
+                        f"[red]Error: Month parameter not supported for yearly system '{source}'[/red]"
+                    )
+                    console.print(
+                        f"[yellow]Yearly systems organize data by year only[/yellow]"
+                    )
+                    return
+
+                if system_type == "yearly":
+                    system = YearlyDatasusSystem(source_metadata, client)
+                else:
+                    system = MonthlyDatasusSystem(source_metadata, client)
+
+                # Build filters dict based on system type
+                filters = {}
+                if group:
+                    filters["group"] = group
                 if uf:
                     filters["uf"] = uf
                 if year:
                     filters["year"] = year
-                if month:
+                if month and system_type == "monthly":
                     filters["month"] = month
 
                 # Use the Result-based system
@@ -244,8 +281,13 @@ def search_system(
                     TextColumn("[progress.description]{task.description}"),
                     console=console,
                 ) as progress:
+                    search_desc = f"Searching {source.upper()}"
+                    if group:
+                        search_desc += f"-{group.upper()}"
+                    search_desc += " files..."
+
                     task = progress.add_task(
-                        f"Searching {source.upper()}-{group.upper()} files...",
+                        search_desc,
                         total=None,
                     )
 
@@ -266,15 +308,19 @@ def search_system(
                                 "dataset": file.dataset,
                             }
                             if file.partition:
-                                file_dict.update(
-                                    {
-                                        "uf": file.partition.uf.value
-                                        if file.partition.uf
-                                        else None,
-                                        "year": file.partition.year,
-                                        "month": file.partition.month,
-                                    }
-                                )
+                                partition_dict = {
+                                    "uf": file.partition.uf.value
+                                    if file.partition.uf
+                                    else None,
+                                    "year": file.partition.year,
+                                }
+                                # Only add month for monthly systems
+                                if (
+                                    hasattr(file.partition, "month")
+                                    and file.partition.month is not None
+                                ):
+                                    partition_dict["month"] = file.partition.month
+                                file_dict.update(partition_dict)
                             files_data.append(file_dict)
 
                         if json_output:
@@ -286,7 +332,10 @@ def search_system(
                         else:
                             # Display the files in a table
                             files_to_show = files[:limit] if limit else files
-                            title = f"{source.upper()}-{group.upper()} Files ({len(files_to_show)} files)"
+                            title_parts = [source.upper()]
+                            if group:
+                                title_parts.append(group.upper())
+                            title = f"{'-'.join(title_parts)} Files ({len(files_to_show)} files)"
 
                             # Determine display mode
                             is_interactive = not json_output and len(files) > 10
@@ -318,7 +367,8 @@ def search_system(
                                         else str(list(years)[0])
                                     )
                                     console.print(f"Years: [green]{year_range}[/green]")
-                                if months:
+                                # Only show month info for monthly systems
+                                if months and system_type == "monthly":
                                     month_display = (
                                         f"{len(months)} months"
                                         if len(months) > 3

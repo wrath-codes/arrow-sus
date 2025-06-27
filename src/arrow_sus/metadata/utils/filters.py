@@ -26,6 +26,7 @@ class LatestFilters(TypedDict, total=False):
 class YearlyFilters(TypedDict, total=False):
     """Filters for yearly DATASUS systems (SINASC, SINAN, etc.)."""
 
+    group: Union[str, List[str]]
     uf: Union[str, List[str]]
     year: Union[int, str, List[Union[int, str]]]
 
@@ -43,7 +44,7 @@ class SourceFilters(TypedDict, total=False):
 # Valid filter keys for each filter type
 VALID_MONTHLY_FILTERS: Set[str] = {"group", "uf", "year", "month"}
 VALID_LATEST_FILTERS: Set[str] = {"group", "states", "months", "current_year"}
-VALID_YEARLY_FILTERS: Set[str] = {"uf", "year"}
+VALID_YEARLY_FILTERS: Set[str] = {"group", "uf", "year"}
 VALID_SOURCE_FILTERS: Set[str] = {"source", "group", "uf", "year", "month"}
 
 
