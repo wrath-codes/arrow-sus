@@ -1,26 +1,112 @@
+// use anyhow::Result;
+// use aws_config::BehaviorVersion;
+// use aws_config::meta::region::RegionProviderChain;
+// use aws_sdk_s3::config::Region;
+// use aws_sdk_s3::primitives::ByteStream;
+// use aws_sdk_s3::{Client, Config};
+
+// #[tokio::main]
+// async fn main() -> Result<()> {
+//     env_logger::init();
+
+//     let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
+
+//     // ✅ EXPLICIT behavior version here
+//     let shared_config = aws_config::defaults(BehaviorVersion::latest())
+//         .region(region_provider)
+//         .load()
+//         .await;
+
+//     // ✅ s3_config from shared_config only
+//     let s3_config = Config::from(&shared_config)
+//         .to_builder()
+//         .region(Region::new("us-east-1"))
+//         .endpoint_url(&std::env::var("SPACES_ENDPOINT")?)
+//         .build();
+
+//     let client = Client::from_conf(s3_config);
+
+//     let test_file = "test.dbc";
+//     let file_data = tokio::fs::read(test_file).await?;
+
+//     let bucket = "sus-ftp-raw";
+//     let key = "test/test.dbc";
+
+//     client
+//         .put_object()
+//         .bucket(bucket)
+//         .key(key)
+//         .body(ByteStream::from(file_data))
+//         .send()
+//         .await?;
+
+//     println!("✅ Uploaded {} to {}/{}", test_file, bucket, key);
+
+//     Ok(())
+// }
+
 use anyhow::Result;
-use suppaftp::AsyncFtpStream;
+use aws_config::BehaviorVersion;
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_s3::config::Region;
+use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::{Client, Config};
+use futures::io::AsyncReadExt;
+use suppaftp::{AsyncFtpStream, FtpError}; // ✅ USE FUTURES NOT TOKIO!
 
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
 
-    let server = "ftp.datasus.gov.br:21";
-
-    let mut ftp_stream = AsyncFtpStream::connect(server).await?;
-    println!("Connected to {server}");
-
+    // 1️⃣ FTP connect
+    let mut ftp_stream = AsyncFtpStream::connect("ftp.datasus.gov.br:21").await?;
     ftp_stream.login("anonymous", "anonymous").await?;
-    println!("Logged in anonymously");
-
     ftp_stream
         .cwd("/dissemin/publicos/SIHSUS/200801_/Dados/")
         .await?;
     let files = ftp_stream.nlst(None).await?;
-    println!("Files: {:?}", files);
+    let file_name = files.get(0).expect("No files!");
+
+    // 2️⃣ Download with retr
+    let file_data = ftp_stream
+        .retr(file_name, |mut data_stream| {
+            Box::pin(async move {
+                let mut buf = Vec::new();
+                data_stream
+                    .read_to_end(&mut buf)
+                    .await
+                    .map_err(FtpError::ConnectionError)?;
+                Ok((buf, data_stream)) // closure must return tuple
+            })
+        })
+        .await?;
+
+    // 3️⃣ S3 upload
+    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
+    let shared_config = aws_config::defaults(BehaviorVersion::latest())
+        .region(region_provider)
+        .load()
+        .await;
+
+    let s3_config = Config::from(&shared_config)
+        .to_builder()
+        .region(Region::new("us-east-1"))
+        .endpoint_url(&std::env::var("SPACES_ENDPOINT")?)
+        .build();
+
+    let client = Client::from_conf(s3_config);
+    let key = format!("mirror/{}", file_name);
+
+    client
+        .put_object()
+        .bucket("sus-ftp-raw")
+        .key(&key)
+        .body(ByteStream::from(file_data))
+        .send()
+        .await?;
+
+    println!("✅ Uploaded: {}", key);
 
     ftp_stream.quit().await?;
-    println!("Connection closed");
-
     Ok(())
 }

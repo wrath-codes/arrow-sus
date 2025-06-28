@@ -5,8 +5,11 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
+aws-config = { version = "1.8.0" }
 aws-sdk-s3 = "1.94.0"
+aws-smithy-http = "0.62.1"
 env_logger = "0.11.8"
+futures = "0.3.31"
 log = "0.4.27"
 phf = "0.12.1"
 phf_codegen = "0.12.1"

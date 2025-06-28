@@ -115,3 +115,6 @@ io_plugin_template/
 # Rust
 Cargo.lock
 */target/
+
+# Ignore some Github actions
+.github/workflows/sus-mirror.yml
