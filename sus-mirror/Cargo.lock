@@ -2928,6 +2928,7 @@ dependencies = [
  "log",
  "phf",
  "phf_codegen",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",

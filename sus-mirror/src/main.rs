@@ -110,6 +110,57 @@
 //     ftp_stream.quit().await?;
 //     Ok(())
 // }
+//
+// use anyhow::Result;
+// use std::future::Future;
+// use std::pin::Pin;
+// use suppaftp::{AsyncFtpStream, FtpError};
+
+// #[tokio::main]
+// async fn main() -> Result<()> {
+//     env_logger::init();
+
+//     let mut ftp_stream = AsyncFtpStream::connect("ftp.datasus.gov.br:21").await?;
+//     ftp_stream.login("anonymous", "anonymous").await?;
+
+//     let base_path = "/dissemin/publicos/SIHSUS/200801_/";
+//     println!("🚀 Crawling from: {}", base_path);
+
+//     crawl(&mut ftp_stream, base_path).await?;
+
+//     ftp_stream.quit().await?;
+//     Ok(())
+// }
+
+// // ✅ Recursion-safe: return boxed future
+// fn crawl<'a>(
+//     ftp: &'a mut AsyncFtpStream,
+//     path: &'a str,
+// ) -> Pin<Box<dyn Future<Output = Result<(), FtpError>> + Send + 'a>> {
+//     Box::pin(async move {
+//         ftp.cwd(path).await?;
+
+//         let entries = ftp.nlst(None).await?;
+
+//         for entry in entries {
+//             let entry_path = format!("{}/{}", path.trim_end_matches('/'), entry);
+
+//             match ftp.cwd(&entry_path).await {
+//                 Ok(_) => {
+//                     println!("📂 Dir: {}", entry_path);
+//                     crawl(ftp, &entry_path).await?;
+//                     ftp.cdup().await?;
+//                 }
+//                 Err(_) => {
+//                     println!("📄 File: {}", entry_path);
+//                 }
+//             }
+//         }
+
+//         Ok(())
+//     })
+// }
+
 use anyhow::Result;
 use std::future::Future;
 use std::pin::Pin;
@@ -122,19 +173,26 @@ async fn main() -> Result<()> {
     let mut ftp_stream = AsyncFtpStream::connect("ftp.datasus.gov.br:21").await?;
     ftp_stream.login("anonymous", "anonymous").await?;
 
-    let base_path = "/dissemin/publicos/SIHSUS/200801_/";
-    println!("🚀 Crawling from: {}", base_path);
+    let base_path = "/dissemin/publicos/";
+    println!("🚀 Starting crawl from: {}", base_path);
 
-    crawl(&mut ftp_stream, base_path).await?;
+    let mut all_dirs = Vec::new();
+    crawl(&mut ftp_stream, base_path, &mut all_dirs).await?;
 
     ftp_stream.quit().await?;
+    println!("\n✅ Done! Found directories:");
+    for dir in &all_dirs {
+        println!("📂 {}", dir);
+    }
+
     Ok(())
 }
 
-// ✅ Recursion-safe: return boxed future
+// ✅ Recursion-safe: boxed async recursion
 fn crawl<'a>(
     ftp: &'a mut AsyncFtpStream,
     path: &'a str,
+    all_dirs: &'a mut Vec<String>,
 ) -> Pin<Box<dyn Future<Output = Result<(), FtpError>> + Send + 'a>> {
     Box::pin(async move {
         ftp.cwd(path).await?;
@@ -146,12 +204,18 @@ fn crawl<'a>(
 
             match ftp.cwd(&entry_path).await {
                 Ok(_) => {
+                    // ✅ It's a directory — store it!
+                    all_dirs.push(entry_path.clone());
                     println!("📂 Dir: {}", entry_path);
-                    crawl(ftp, &entry_path).await?;
+
+                    // Recurse
+                    crawl(ftp, &entry_path, all_dirs).await?;
+
+                    // Go back up one level
                     ftp.cdup().await?;
                 }
                 Err(_) => {
-                    println!("📄 File: {}", entry_path);
+                    // ❌ It's probably a file — skip
                 }
             }
         }
