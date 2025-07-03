@@ -2944,6 +2944,7 @@ dependencies = [
  "serde",
  "serde_json",
  "suppaftp",
+ "tempfile",
  "tokio",
  "tokio-rustls 0.26.2",
 ]
