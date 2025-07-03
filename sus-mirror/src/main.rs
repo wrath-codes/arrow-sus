@@ -165,6 +165,7 @@ use anyhow::Result;
 use std::future::Future;
 use std::pin::Pin;
 use suppaftp::{AsyncFtpStream, FtpError};
+pub mod models;
 
 #[tokio::main]
 async fn main() -> Result<()> {
