@@ -1,0 +1,11 @@
+[workspace]
+resolver = "3"
+members = [ 
+    "crates/shared", 
+    "crates/ftp_mirror",
+    "crates/etl_pipeline",
+    "crates/snapshot_builder",
+    "crates/lakefs_client",
+    "crates/data_client",
+    "crates/python_bindings",
+]

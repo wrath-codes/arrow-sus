@@ -20,8 +20,6 @@ dependencies = [
     "whenever>=0.8.6",
 ]
 
-[tool.uv.workspace]
-members = ["arrow-sus-rs"]
 
 [tool.uv.sources]
 mkdocstrings-python = { git = "https://github.com/pawamoy-insiders/mkdocstrings-python.git" }
