@@ -6,6 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use futures::future::join_all;
 
 /// Type alias for directory content
 pub type DirectoryContent = HashMap<String, DirectoryEntry>;
@@ -17,11 +18,28 @@ pub enum DirectoryEntry {
     Directory(Directory),
 }
 
+/// Type alias for parallel directory listing results
+pub type ParallelDirectoryResult = (String, Result<DirectoryContent, Box<dyn std::error::Error + Send + Sync>>);
+
 /// Trait for different file system providers
 #[async_trait]
 pub trait FileSystemProvider: Send + Sync {
     /// List the contents of a directory
     async fn list_directory(&self, path: &str) -> Result<DirectoryContent, Box<dyn std::error::Error + Send + Sync>>;
+    
+    /// List multiple directories in parallel
+    async fn list_directories_parallel(&self, paths: Vec<&str>) -> Vec<ParallelDirectoryResult> {
+        // Default implementation using join_all
+        let futures: Vec<_> = paths.into_iter().map(|path| {
+            let path_owned = path.to_string();
+            async move {
+                let result = self.list_directory(&path_owned).await;
+                (path_owned, result)
+            }
+        }).collect();
+        
+        join_all(futures).await
+    }
     
     /// Check if a path exists
     async fn exists(&self, path: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
@@ -206,6 +224,30 @@ impl FtpFileSystemProvider {
         
         Ok(ftp_stream)
     }
+    
+    /// List multiple directories in parallel with timing information
+    pub async fn list_directories_with_timing(&self, paths: Vec<&str>) -> Vec<(String, Result<DirectoryContent, Box<dyn std::error::Error + Send + Sync>>, std::time::Duration)> {
+        use std::time::Instant;
+        
+        let futures: Vec<_> = paths.into_iter().map(|path| {
+            let provider = self.clone();
+            let path_owned = path.to_string();
+            async move {
+                let start = Instant::now();
+                let result = provider.list_directory(&path_owned).await;
+                let duration = start.elapsed();
+                (path_owned, result, duration)
+            }
+        }).collect();
+        
+        join_all(futures).await
+    }
+    
+    /// Convenient method for listing DATASUS directories in parallel
+    pub async fn list_datasus_directories_parallel(&self, relative_paths: Vec<&str>) -> Vec<ParallelDirectoryResult> {
+        // relative_paths should be like ["/SIASUS/200801_/Dados", "/SIM/CID10"]
+        self.list_directories_parallel(relative_paths).await
+    }
 }
 
 #[async_trait]
@@ -308,6 +350,20 @@ impl FileSystemProvider for FtpFileSystemProvider {
     async fn is_directory(&self, path: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         // For FTP, if we can cwd into it, it's a directory
         self.exists(path).await
+    }
+    
+    /// Optimized parallel directory listing for FTP with timing information
+    async fn list_directories_parallel(&self, paths: Vec<&str>) -> Vec<ParallelDirectoryResult> {
+        let futures: Vec<_> = paths.into_iter().map(|path| {
+            let provider = self.clone();
+            let path_owned = path.to_string();
+            async move {
+                let result = provider.list_directory(&path_owned).await;
+                (path_owned, result)
+            }
+        }).collect();
+        
+        join_all(futures).await
     }
     
     fn provider_name(&self) -> &'static str {
