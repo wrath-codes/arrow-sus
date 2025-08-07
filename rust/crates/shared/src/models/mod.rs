@@ -3,6 +3,10 @@ pub mod file;
 pub mod utils;
 pub mod async_utils;
 pub mod directory;
+pub mod subsystem;
+pub mod regex_patterns;
+pub mod date_utils;
+pub mod geo_utils;
 
 pub use file_info::*;
 pub use file::*;
@@ -16,3 +20,11 @@ pub use async_utils::{
 };
 // Re-export directory module
 pub use directory::*;
+// Re-export subsystem module
+pub use subsystem::*;
+// Re-export regex patterns module
+pub use regex_patterns::*;
+// Re-export date utils module
+pub use date_utils::*;
+// Re-export geo utils module  
+pub use geo_utils::*;
