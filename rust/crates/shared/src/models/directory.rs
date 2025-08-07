@@ -97,27 +97,196 @@ impl FileSystemProvider for LocalFileSystemProvider {
     }
 }
 
-/// FTP file system provider (placeholder for now)
+/// FTP file system provider for DATASUS
 #[derive(Debug, Clone)]
 pub struct FtpFileSystemProvider {
-    // Will contain FTP connection details
+    /// FTP server hostname
+    pub host: String,
+    /// Base path on the FTP server
+    pub base_path: String,
+    /// FTP port (default 21)
+    pub port: u16,
+}
+
+impl FtpFileSystemProvider {
+    /// Create a new FTP provider for DATASUS
+    pub fn new_datasus() -> Self {
+        Self {
+            host: "ftp.datasus.gov.br".to_string(),
+            base_path: "/dissemin/publicos".to_string(),
+            port: 21,
+        }
+    }
+    
+    /// Create a new FTP provider with custom settings
+    pub fn new(host: String, base_path: String, port: Option<u16>) -> Self {
+        Self {
+            host,
+            base_path,
+            port: port.unwrap_or(21),
+        }
+    }
+    
+    /// Parse FTP directory listing line
+    /// Format: "MM-DD-YY HH:MMxm <DIR> name" or "MM-DD-YY HH:MMxm size name"
+    pub fn parse_ftp_line(&self, line: &str, current_path: &str) -> Option<(String, DirectoryEntry)> {
+        use crate::models::file_info::{FileInfo, FileSize};
+        use chrono::{DateTime, Utc, NaiveDateTime};
+        
+        let parts: Vec<&str> = line.trim().split_whitespace().collect();
+        if parts.len() < 4 {
+            return None;
+        }
+        
+        let date = parts[0];
+        let time = parts[1];
+        
+        // Parse date and time
+        let datetime_str = format!("{} {}", date, time);
+        let naive_dt = NaiveDateTime::parse_from_str(&datetime_str, "%m-%d-%y %I:%M%p").ok()?;
+        let modify: DateTime<Utc> = DateTime::from_naive_utc_and_offset(naive_dt, Utc);
+        
+        if parts[2] == "<DIR>" {
+            // Directory entry
+            let name = parts[3..].join(" ");
+            let dir_path = if current_path.ends_with('/') {
+                format!("{}{}", current_path, name)
+            } else {
+                format!("{}/{}", current_path, name)
+            };
+            
+            // Create directory (this is a simplified version - we'll need to handle this properly)
+            // For now, we'll create a basic directory structure
+            let directory = Directory {
+                path: dir_path,
+                name: name.clone(),
+                loaded: false,
+                provider_type: "ftp".to_string(),
+            };
+            
+            Some((name, DirectoryEntry::Directory(directory)))
+        } else {
+            // File entry
+            let size_str = parts[2];
+            let name = parts[3..].join(" ");
+            
+            // Parse file size
+            let size = if let Ok(bytes) = size_str.parse::<u64>() {
+                FileSize::from_bytes(bytes)
+            } else {
+                FileSize::from_string(size_str)
+            };
+            
+            // Get file extension
+            let extension = std::path::Path::new(&name)
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .map(|ext| format!(".{}", ext))
+                .unwrap_or_default();
+            
+            let file_info = FileInfo::new(size, extension, modify);
+            let file = File::new(current_path, &name, file_info);
+            
+            Some((name, DirectoryEntry::File(file)))
+        }
+    }
+    
+    /// Create FTP connection
+    async fn create_connection(&self) -> Result<suppaftp::AsyncRustlsFtpStream, Box<dyn std::error::Error + Send + Sync>> {
+        use suppaftp::{AsyncRustlsFtpStream, Mode};
+        
+        // Connect to FTP server
+        let mut ftp_stream = AsyncRustlsFtpStream::connect(&format!("{}:{}", self.host, self.port)).await?;
+        
+        // Login as anonymous (DATASUS is public)
+        ftp_stream.login("anonymous", "").await?;
+        
+        // Set passive mode (not async)
+        ftp_stream.set_mode(Mode::Passive);
+        
+        Ok(ftp_stream)
+    }
 }
 
 #[async_trait]
 impl FileSystemProvider for FtpFileSystemProvider {
-    async fn list_directory(&self, _path: &str) -> Result<DirectoryContent, Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Implement FTP directory listing
-        Ok(DirectoryContent::new())
+    async fn list_directory(&self, path: &str) -> Result<DirectoryContent, Box<dyn std::error::Error + Send + Sync>> {
+        let mut content = DirectoryContent::new();
+        let full_path = if path.starts_with('/') {
+            format!("{}{}", self.base_path, path)
+        } else {
+            format!("{}/{}", self.base_path, path)
+        };
+        
+        // Create connection
+        let mut ftp_stream = self.create_connection().await?;
+        
+        // Change to target directory
+        ftp_stream.cwd(&full_path).await?;
+        
+        // Get directory listing
+        let lines = ftp_stream.list(None).await?;
+        
+        // Parse each line
+        for line in lines {
+            if let Some((name, entry)) = self.parse_ftp_line(&line, path) {
+                // Filter out .DBF files if .DBC exists (as in Python version)
+                if name.to_uppercase().ends_with(".DBF") {
+                    let dbc_name = name.to_uppercase().replace(".DBF", ".DBC");
+                    if content.contains_key(&dbc_name) {
+                        continue; // Skip .DBF file
+                    }
+                }
+                content.insert(name, entry);
+            }
+        }
+        
+        // Remove .DBF files if corresponding .DBC exists (post-processing)
+        let to_remove: Vec<String> = content.keys()
+            .filter(|name| {
+                name.to_uppercase().ends_with(".DBF") && 
+                content.contains_key(&name.to_uppercase().replace(".DBF", ".DBC"))
+            })
+            .cloned()
+            .collect();
+        
+        for name in to_remove {
+            content.remove(&name);
+        }
+        
+        // Close connection
+        let _ = ftp_stream.quit().await;
+        
+        Ok(content)
     }
     
-    async fn exists(&self, _path: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Implement FTP exists check
-        Ok(false)
+    async fn exists(&self, path: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let full_path = if path.starts_with('/') {
+            format!("{}{}", self.base_path, path)
+        } else {
+            format!("{}/{}", self.base_path, path)
+        };
+        
+        match self.create_connection().await {
+            Ok(mut ftp_stream) => {
+                match ftp_stream.cwd(&full_path).await {
+                    Ok(_) => {
+                        let _ = ftp_stream.quit().await;
+                        Ok(true)
+                    }
+                    Err(_) => {
+                        let _ = ftp_stream.quit().await;
+                        Ok(false)
+                    }
+                }
+            }
+            Err(_) => Ok(false),
+        }
     }
     
-    async fn is_directory(&self, _path: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Implement FTP directory check
-        Ok(false)
+    async fn is_directory(&self, path: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        // For FTP, if we can cwd into it, it's a directory
+        self.exists(path).await
     }
     
     fn provider_name(&self) -> &'static str {
@@ -713,5 +882,69 @@ mod tests {
         
         let is_dir = provider.is_directory(&current_dir).await.unwrap();
         assert!(is_dir);
+    }
+
+    #[tokio::test]
+    async fn test_ftp_provider_creation() {
+        let ftp_provider = FtpFileSystemProvider::new_datasus();
+        assert_eq!(ftp_provider.provider_name(), "ftp");
+        assert_eq!(ftp_provider.host, "ftp.datasus.gov.br");
+        assert_eq!(ftp_provider.base_path, "/dissemin/publicos");
+        assert_eq!(ftp_provider.port, 21);
+        
+        let custom_provider = FtpFileSystemProvider::new(
+            "custom.ftp.com".to_string(),
+            "/custom/path".to_string(),
+            Some(2121)
+        );
+        assert_eq!(custom_provider.host, "custom.ftp.com");
+        assert_eq!(custom_provider.base_path, "/custom/path");
+        assert_eq!(custom_provider.port, 2121);
+    }
+
+    #[tokio::test]
+    async fn test_ftp_line_parsing() {
+        let ftp_provider = FtpFileSystemProvider::new_datasus();
+        
+        // Test directory parsing
+        let dir_line = "12-01-23 02:30PM    <DIR>          SIASUS";
+        let result = ftp_provider.parse_ftp_line(dir_line, "/test");
+        assert!(result.is_some());
+        let (name, entry) = result.unwrap();
+        assert_eq!(name, "SIASUS");
+        assert!(matches!(entry, DirectoryEntry::Directory(_)));
+        
+        // Test file parsing
+        let file_line = "12-01-23 02:30PM              1024 test.txt";
+        let result = ftp_provider.parse_ftp_line(file_line, "/test");
+        assert!(result.is_some());
+        let (name, entry) = result.unwrap();
+        assert_eq!(name, "test.txt");
+        assert!(matches!(entry, DirectoryEntry::File(_)));
+        
+        // Test invalid line
+        let invalid_line = "invalid line";
+        let result = ftp_provider.parse_ftp_line(invalid_line, "/test");
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_ftp_provider_with_directory() {
+        // Test creating directory with FTP provider
+        let ftp_provider = Arc::new(FtpFileSystemProvider::new_datasus());
+        
+        // This would test against a real FTP server - for now we just test the provider setup
+        let result = Directory::new_with_provider(
+            "/SIASUS".to_string(),
+            ftp_provider.clone()
+        ).await;
+        
+        assert!(result.is_ok());
+        let dir = result.unwrap();
+        assert_eq!(dir.path, "/SIASUS");
+        assert_eq!(dir.provider_type, "ftp");
+        
+        // Note: Actual FTP operations would require network access
+        // In a real scenario, we'd test with a mock FTP server
     }
 }
