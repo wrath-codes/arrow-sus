@@ -2,6 +2,7 @@ pub mod file_info;
 pub mod file;
 pub mod utils;
 pub mod async_utils;
+pub mod directory;
 
 pub use file_info::*;
 pub use file::*;
@@ -13,3 +14,5 @@ pub use async_utils::{
     async_path_utils, async_cache, async_stream_utils,
     ASYNC_CACHE_PATH, ASYNC_CACHE_PATH_BUF, ASYNC_DIRECTORY_CACHE
 };
+// Re-export directory module
+pub use directory::*;
