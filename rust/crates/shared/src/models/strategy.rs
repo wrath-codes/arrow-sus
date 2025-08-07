@@ -64,11 +64,8 @@ impl ConnectionStrategy {
     pub async fn create(strategy_name: &str) -> Result<Box<dyn SourceStrategy>, ConnectionError> {
         match strategy_name.to_uppercase().as_str() {
             "DATASUS_FTP" => {
-                // TODO: Implement actual FtpStrategy
-                Err(ConnectionError::LibraryNotFound {
-                    lib_name: "FtpStrategy".to_string(),
-                    message: "FTP strategy not implemented yet".to_string(),
-                })
+                let ftp_strategy = crate::models::ftp_strategy::FtpStrategy::new()?;
+                Ok(Box::new(ftp_strategy))
             }
             "DATASUS_S3" => {
                 Err(ConnectionError::LibraryNotFound {
