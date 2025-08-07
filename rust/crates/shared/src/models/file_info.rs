@@ -209,3 +209,4 @@ pub fn file_info_to_json(file_info: &FileInfo) -> Result<String, serde_json::Err
 pub fn file_info_to_json_pretty(file_info: &FileInfo) -> Result<String, serde_json::Error> {
     serde_json::to_string_pretty(file_info)
 }
+
