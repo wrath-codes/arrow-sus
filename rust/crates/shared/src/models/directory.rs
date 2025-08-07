@@ -21,6 +21,22 @@ pub enum DirectoryEntry {
 /// Type alias for parallel directory listing results
 pub type ParallelDirectoryResult = (String, Result<DirectoryContent, Box<dyn std::error::Error + Send + Sync>>);
 
+/// Flattened directory entry with depth information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FlatDirectoryEntry {
+    /// Full path from the root search directory
+    pub path: String,
+    /// Just the file or directory name
+    pub name: String,
+    /// The actual entry (File or Directory)
+    pub entry: DirectoryEntry,
+    /// Depth from the root search directory (0 = root level)
+    pub depth: usize,
+}
+
+/// Type alias for flattened directory listing results
+pub type FlatDirectoryListing = Vec<FlatDirectoryEntry>;
+
 /// Trait for different file system providers
 #[async_trait]
 pub trait FileSystemProvider: Send + Sync {
@@ -39,6 +55,85 @@ pub trait FileSystemProvider: Send + Sync {
         }).collect();
         
         join_all(futures).await
+    }
+    
+    /// Recursively list directory contents and all subdirectories (flattened)
+    async fn list_directory_recursive(&self, path: &str, max_depth: Option<usize>) -> Result<FlatDirectoryListing, Box<dyn std::error::Error + Send + Sync>> {
+        // Default implementation using recursive helper
+        self.list_directory_recursive_impl(path, 0, max_depth).await
+    }
+    
+    /// Helper method for recursive directory listing implementation
+    async fn list_directory_recursive_impl(&self, path: &str, current_depth: usize, max_depth: Option<usize>) -> Result<FlatDirectoryListing, Box<dyn std::error::Error + Send + Sync>> {
+        let mut results = Vec::new();
+        
+        // Check depth limit
+        if let Some(max) = max_depth {
+            if current_depth >= max {
+                return Ok(results);
+            }
+        }
+        
+        // List current directory
+        let content = match self.list_directory(path).await {
+            Ok(content) => content,
+            Err(e) => {
+                // Log error but continue with empty results for this path
+                eprintln!("Warning: Failed to list directory {}: {}", path, e);
+                return Ok(results);
+            }
+        };
+        
+        // Collect subdirectories for parallel processing
+        let mut subdirs = Vec::new();
+        
+        // Process current level entries
+        for (name, entry) in content {
+            let full_path = if path.ends_with('/') {
+                format!("{}{}", path, name)
+            } else {
+                format!("{}/{}", path, name)
+            };
+            
+            let flat_entry = FlatDirectoryEntry {
+                path: full_path.clone(),
+                name: name.clone(),
+                entry: entry.clone(),
+                depth: current_depth,
+            };
+            
+            results.push(flat_entry);
+            
+            // If it's a directory, add to subdirs for recursive processing
+            if matches!(entry, DirectoryEntry::Directory(_)) {
+                subdirs.push(full_path);
+            }
+        }
+        
+        // Recursively process subdirectories in parallel
+        if !subdirs.is_empty() && (max_depth.is_none() || current_depth + 1 < max_depth.unwrap()) {
+            let futures: Vec<_> = subdirs.into_iter().map(|subdir| {
+                async move {
+                    self.list_directory_recursive_impl(&subdir, current_depth + 1, max_depth).await
+                }
+            }).collect();
+            
+            let subdir_results = join_all(futures).await;
+            
+            // Flatten all subdirectory results
+            for subdir_result in subdir_results {
+                match subdir_result {
+                    Ok(mut subdir_entries) => {
+                        results.append(&mut subdir_entries);
+                    }
+                    Err(e) => {
+                        eprintln!("Warning: Failed to process subdirectory: {}", e);
+                    }
+                }
+            }
+        }
+        
+        Ok(results)
     }
     
     /// Check if a path exists
@@ -247,6 +342,57 @@ impl FtpFileSystemProvider {
     pub async fn list_datasus_directories_parallel(&self, relative_paths: Vec<&str>) -> Vec<ParallelDirectoryResult> {
         // relative_paths should be like ["/SIASUS/200801_/Dados", "/SIM/CID10"]
         self.list_directories_parallel(relative_paths).await
+    }
+    
+    /// Get a complete recursive listing of a DATASUS directory with optional depth limit
+    pub async fn list_datasus_recursive(&self, path: &str, max_depth: Option<usize>) -> Result<FlatDirectoryListing, Box<dyn std::error::Error + Send + Sync>> {
+        self.list_directory_recursive(path, max_depth).await
+    }
+    
+    /// Get recursive listing with filtering by file extension
+    pub async fn list_datasus_recursive_with_extension(&self, path: &str, extension: &str, max_depth: Option<usize>) -> Result<Vec<FlatDirectoryEntry>, Box<dyn std::error::Error + Send + Sync>> {
+        let all_entries = self.list_directory_recursive(path, max_depth).await?;
+        
+        let filtered: Vec<_> = all_entries.into_iter()
+            .filter(|entry| {
+                match &entry.entry {
+                    DirectoryEntry::File(file) => {
+                        file.basename.to_lowercase().ends_with(&format!(".{}", extension.to_lowercase()))
+                    }
+                    DirectoryEntry::Directory(_) => false, // Don't include directories in extension filter
+                }
+            })
+            .collect();
+        
+        Ok(filtered)
+    }
+    
+    /// Get recursive statistics (counts of files, directories, total size)
+    pub async fn get_recursive_stats(&self, path: &str, max_depth: Option<usize>) -> Result<(usize, usize, u64), Box<dyn std::error::Error + Send + Sync>> {
+        let entries = self.list_directory_recursive(path, max_depth).await?;
+        
+        let mut file_count = 0;
+        let mut dir_count = 0;
+        let mut total_size = 0u64;
+        
+        for entry in entries {
+            match entry.entry {
+                DirectoryEntry::File(file) => {
+                    file_count += 1;
+                    if let Some(size_info) = file.info().get("size") {
+                        // Parse size string like "1.5 MB" -> bytes
+                        if let Ok(bytes) = size_info.replace(" KB", "000").replace(" MB", "000000").replace(" GB", "000000000").parse::<u64>() {
+                            total_size += bytes;
+                        }
+                    }
+                }
+                DirectoryEntry::Directory(_) => {
+                    dir_count += 1;
+                }
+            }
+        }
+        
+        Ok((file_count, dir_count, total_size))
     }
 }
 
