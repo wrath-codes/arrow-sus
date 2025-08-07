@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         
         // Test 1: Basic recursive listing
         let start = Instant::now();
-        match ftp_provider.list_directory_recursive(path, Some(*max_depth)).await {
+        match ftp_provider.as_ref().list_directory_recursive(path, Some(*max_depth)).await {
             Ok(entries) => {
                 let duration = start.elapsed();
                 println!("  ✅ Recursive listing: {} entries in {:?}", entries.len(), duration);
