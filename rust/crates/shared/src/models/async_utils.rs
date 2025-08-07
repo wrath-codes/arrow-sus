@@ -2,8 +2,11 @@ use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use tokio::sync::Mutex;
+use tokio::fs;
 use lazy_static::lazy_static;
+use serde::{Serialize, Deserialize};
 
 /// Type aliases (same as sync version)
 pub type PathLike = PathBuf;
@@ -287,6 +290,177 @@ pub mod async_stream_utils {
         S: Stream<Item = T>,
     {
         stream.collect().await
+    }
+}
+
+/// Content cache entry with TTL support
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheEntry {
+    pub content: String,
+    pub timestamp: u64,
+    pub ttl_seconds: u64,
+}
+
+impl CacheEntry {
+    pub fn new(content: String, ttl_seconds: u64) -> Self {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        
+        Self {
+            content,
+            timestamp,
+            ttl_seconds,
+        }
+    }
+    
+    pub fn is_expired(&self) -> bool {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        
+        now > self.timestamp + self.ttl_seconds
+    }
+    
+    pub fn time_left(&self) -> Option<Duration> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        
+        let expires_at = self.timestamp + self.ttl_seconds;
+        if now < expires_at {
+            Some(Duration::from_secs(expires_at - now))
+        } else {
+            None
+        }
+    }
+}
+
+lazy_static! {
+    /// Content cache with TTL support for directory listings
+    pub static ref CONTENT_CACHE: Mutex<HashMap<String, CacheEntry>> = {
+        Mutex::new(HashMap::new())
+    };
+}
+
+/// Content cache utilities with TTL support
+pub mod content_cache {
+    use super::*;
+    use tokio::fs;
+    
+    /// Default TTL for FTP directory cache (5 minutes)
+    pub const DEFAULT_FTP_TTL_SECONDS: u64 = 300;
+    
+    /// Generate cache key for FTP provider
+    pub fn generate_ftp_cache_key(host: &str, path: &str) -> String {
+        format!("ftp://{}:{}", host, path)
+    }
+    
+    /// Add content to cache with TTL
+    pub async fn cache_content(key: String, content: String, ttl_seconds: u64) {
+        let entry = CacheEntry::new(content, ttl_seconds);
+        let mut cache = CONTENT_CACHE.lock().await;
+        cache.insert(key, entry);
+    }
+    
+    /// Get content from cache (returns None if expired or not found)
+    pub async fn get_cached_content(key: &str) -> Option<String> {
+        let mut cache = CONTENT_CACHE.lock().await;
+        
+        if let Some(entry) = cache.get(key) {
+            if entry.is_expired() {
+                // Remove expired entry
+                cache.remove(key);
+                None
+            } else {
+                Some(entry.content.clone())
+            }
+        } else {
+            None
+        }
+    }
+    
+    /// Check if content exists in cache and is not expired
+    pub async fn is_cached(key: &str) -> bool {
+        let cache = CONTENT_CACHE.lock().await;
+        
+        if let Some(entry) = cache.get(key) {
+            !entry.is_expired()
+        } else {
+            false
+        }
+    }
+    
+    /// Get cache entry info (for debugging)
+    pub async fn get_cache_info(key: &str) -> Option<(u64, Option<Duration>)> {
+        let cache = CONTENT_CACHE.lock().await;
+        
+        cache.get(key).map(|entry| {
+            (entry.timestamp, entry.time_left())
+        })
+    }
+    
+    /// Clear expired entries from cache
+    pub async fn cleanup_expired() -> usize {
+        let mut cache = CONTENT_CACHE.lock().await;
+        let mut to_remove = Vec::new();
+        
+        for (key, entry) in cache.iter() {
+            if entry.is_expired() {
+                to_remove.push(key.clone());
+            }
+        }
+        
+        let removed_count = to_remove.len();
+        for key in to_remove {
+            cache.remove(&key);
+        }
+        
+        removed_count
+    }
+    
+    /// Get cache statistics
+    pub async fn cache_stats() -> (usize, usize) {
+        let cache = CONTENT_CACHE.lock().await;
+        let total = cache.len();
+        let expired = cache.values().filter(|entry| entry.is_expired()).count();
+        (total, expired)
+    }
+    
+    /// Clear all cache entries
+    pub async fn clear_content_cache() {
+        let mut cache = CONTENT_CACHE.lock().await;
+        cache.clear();
+    }
+    
+    /// Save cache to disk (for persistence)
+    pub async fn save_cache_to_disk() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let cache = CONTENT_CACHE.lock().await;
+        let cache_file = super::async_path_utils::cache_path_async("content_cache.json").await;
+        
+        let serialized = serde_json::to_string_pretty(&*cache)?;
+        fs::write(cache_file, serialized).await?;
+        
+        Ok(())
+    }
+    
+    /// Load cache from disk (for persistence)
+    pub async fn load_cache_from_disk() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let cache_file = super::async_path_utils::cache_path_async("content_cache.json").await;
+        
+        if cache_file.exists() {
+            let content = fs::read_to_string(cache_file).await?;
+            let loaded_cache: HashMap<String, CacheEntry> = serde_json::from_str(&content)?;
+            
+            let mut cache = CONTENT_CACHE.lock().await;
+            cache.clear();
+            cache.extend(loaded_cache);
+        }
+        
+        Ok(())
     }
 }
 

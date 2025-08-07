@@ -1,5 +1,5 @@
 use crate::models::file::File;
-use crate::models::async_utils::async_cache;
+use crate::models::async_utils::{async_cache, content_cache};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -211,6 +211,18 @@ impl FtpFileSystemProvider {
 #[async_trait]
 impl FileSystemProvider for FtpFileSystemProvider {
     async fn list_directory(&self, path: &str) -> Result<DirectoryContent, Box<dyn std::error::Error + Send + Sync>> {
+        // Generate cache key
+        let cache_key = content_cache::generate_ftp_cache_key(&self.host, path);
+        
+        // Check cache first
+        if let Some(cached_content) = content_cache::get_cached_content(&cache_key).await {
+            // Deserialize cached content
+            if let Ok(content) = serde_json::from_str::<DirectoryContent>(&cached_content) {
+                return Ok(content);
+            }
+        }
+        
+        // Cache miss - fetch from FTP server
         let mut content = DirectoryContent::new();
         let full_path = if path.starts_with('/') {
             format!("{}{}", self.base_path, path)
@@ -256,6 +268,15 @@ impl FileSystemProvider for FtpFileSystemProvider {
         
         // Close connection
         let _ = ftp_stream.quit().await;
+        
+        // Cache the result with default TTL (5 minutes)
+        if let Ok(serialized) = serde_json::to_string(&content) {
+            content_cache::cache_content(
+                cache_key,
+                serialized,
+                content_cache::DEFAULT_FTP_TTL_SECONDS,
+            ).await;
+        }
         
         Ok(content)
     }
