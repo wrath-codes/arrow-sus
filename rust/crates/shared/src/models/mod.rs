@@ -3,10 +3,12 @@ pub mod file;
 pub mod utils;
 pub mod async_utils;
 pub mod directory;
+pub mod download;
 pub mod subsystem;
 pub mod regex_patterns;
 pub mod date_utils;
 pub mod geo_utils;
+pub mod group_info;
 
 pub use file_info::*;
 pub use file::*;
@@ -28,3 +30,7 @@ pub use regex_patterns::*;
 pub use date_utils::*;
 // Re-export geo utils module  
 pub use geo_utils::*;
+// Re-export group info module
+pub use group_info::*;
+// Re-export download module
+pub use download::*;
