@@ -40,5 +40,9 @@ path = "../../examples/rich_download_demo.rs"
 name = "parallel_download_demo"
 path = "../../examples/parallel_download_demo.rs"
 
+[[example]]
+name = "gradient_download_demo"
+path = "../../examples/gradient_download_demo.rs"
+
 [dev-dependencies]
 tokio-test = "0.4"
