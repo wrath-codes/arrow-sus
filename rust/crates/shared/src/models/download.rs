@@ -1,6 +1,6 @@
 use anyhow::Result;
 use futures::io::AsyncReadExt;
-use kdam::{tqdm, BarExt, RichProgress, Column, Spinner};
+use kdam::{tqdm, BarExt, RichProgress, Column, Spinner, term};
 use std::path::Path;
 use suppaftp::{AsyncFtpStream, FtpError};
 use tokio::fs;
@@ -50,10 +50,13 @@ pub async fn download_file_with_progress(
 
     println!("📥 Downloading: {}", filename);
 
+    // Initialize terminal for colors
+    term::init(true);
+
     // Get file size for progress tracking (if available)
     let file_size = get_file_size(ftp_stream, remote_path).await.unwrap_or(0);
     
-    // Create beautiful rich progress bar
+    // Create beautiful rich progress bar with colors
     let mut pb = if file_size > 0 {
         RichProgress::new(
             tqdm!(
@@ -68,15 +71,15 @@ pub async fn download_file_with_progress(
                     80.0,
                     1.0,
                 )),
-                Column::Text(format!("📥 {}", filename)),
-                Column::Text("•".to_string()),
+                Column::Text(format!("[bold cyan]📥 {}", filename)),
+                Column::Text("[dim]•".to_string()),
                 Column::Animation,
                 Column::Percentage(1),
-                Column::Text("•".to_string()),
+                Column::Text("[dim]•".to_string()),
                 Column::CountTotal,
-                Column::Text("•".to_string()),
+                Column::Text("[dim]•".to_string()),
                 Column::Rate,
-                Column::Text("•".to_string()),
+                Column::Text("[dim]•".to_string()),
                 Column::RemainingTime,
             ],
         )
@@ -90,19 +93,18 @@ pub async fn download_file_with_progress(
                     80.0,
                     1.0,
                 )),
-                Column::Text(format!("📥 {}", filename)),
-                Column::Text("•".to_string()),
+                Column::Text(format!("[bold cyan]📥 {}", filename)),
+                Column::Text("[dim]•".to_string()),
                 Column::Animation,
-                Column::Text("•".to_string()),
+                Column::Text("[dim]•".to_string()),
                 Column::Count,
-                Column::Text("•".to_string()),
+                Column::Text("[dim]•".to_string()),
                 Column::Rate,
             ],
         )
     };
 
     // Download file with progress tracking
-    let mut downloaded_bytes = 0u64;
     let file_data = ftp_stream
         .retr(remote_path, |mut data_stream| {
             Box::pin(async move {
@@ -126,7 +128,7 @@ pub async fn download_file_with_progress(
         .await?;
 
     // Update progress bar with final size
-    downloaded_bytes = file_data.len() as u64;
+    let downloaded_bytes = file_data.len() as u64;
     if file_size > 0 {
         let _ = pb.update(downloaded_bytes as usize);
     }
