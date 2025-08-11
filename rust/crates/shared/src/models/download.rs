@@ -533,9 +533,13 @@ mod tests {
 
         println!("📄 Testing download of: {} ({} bytes)", file.basename, file.size_bytes().unwrap_or(0));
 
+        // Create temporary directory for test downloads
+        let temp_dir = std::env::temp_dir().join("arrow_sus_test_downloads");
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        
         // Create downloader
         let config = DownloadConfig {
-            output_dir: "./test_downloads".to_string(),
+            output_dir: temp_dir.to_string_lossy().to_string(),
             preserve_structure: false,
             max_concurrent: 1,
             buffer_size: 4096,
@@ -622,9 +626,13 @@ mod tests {
             file.size_bytes().unwrap_or(0)
         );
 
+        // Create temporary directory for large test downloads
+        let temp_dir = std::env::temp_dir().join("arrow_sus_large_downloads");
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        
         // Create downloader with progress callback
         let config = DownloadConfig {
-            output_dir: "./large_downloads".to_string(),
+            output_dir: temp_dir.to_string_lossy().to_string(),
             preserve_structure: false,
             max_concurrent: 1,
             buffer_size: 16384, // Larger buffer for big file
@@ -740,9 +748,13 @@ mod tests {
             println!("  - {} ({:.1} MB)", file.basename, size_mb);
         }
 
+        // Create temporary directory for multi large test downloads
+        let temp_dir = std::env::temp_dir().join("arrow_sus_multi_large_downloads");
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        
         // Create downloader with concurrent downloads enabled
         let config = DownloadConfig {
-            output_dir: "./multi_large_downloads".to_string(),
+            output_dir: temp_dir.to_string_lossy().to_string(),
             preserve_structure: false,
             max_concurrent: 2, // Download 2 files at once
             buffer_size: 16384, // Larger buffer for big files
