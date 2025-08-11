@@ -1,5 +1,6 @@
 use crate::models::file::File;
 use crate::models::directory::FtpFileSystemProvider;
+use crate::models::async_utils::async_path_utils::{path_exists_async, ensure_dir_async, get_file_size_async, cache_path_async};
 use indicatif::{ProgressBar, ProgressStyle, MultiProgress, HumanDuration};
 use console::{Style, Term};
 
@@ -31,7 +32,7 @@ pub struct DownloadConfig {
 impl Default for DownloadConfig {
     fn default() -> Self {
         Self {
-            output_dir: "./downloads".to_string(),
+            output_dir: "./downloads".to_string(), // Will be improved with cache_path_async in new_with_cache()
             preserve_structure: true,
             max_concurrent: 4,
             buffer_size: 8192,
@@ -81,6 +82,24 @@ impl FtpDownloader {
         }
     }
 
+    /// Create a new DATASUS downloader using cache directory for downloads
+    pub async fn new_datasus_with_cache() -> Result<Self> {
+        let cache_downloads_path = cache_path_async("downloads").await;
+        let config = DownloadConfig {
+            output_dir: cache_downloads_path.to_string_lossy().to_string(),
+            preserve_structure: true,
+            max_concurrent: 4,
+            buffer_size: 8192,
+            overwrite: false,
+        };
+        
+        Ok(Self {
+            provider: FtpFileSystemProvider::new_datasus(),
+            config,
+            progress_callback: None,
+        })
+    }
+
     /// Create a new downloader with custom provider and config
     pub fn new(provider: FtpFileSystemProvider, config: DownloadConfig) -> Self {
         Self {
@@ -110,7 +129,7 @@ impl FtpDownloader {
         let local_path = self.get_local_path(file)?;
         
         // Check if file exists and should not be overwritten
-        if local_path.exists() && !self.config.overwrite {
+        if path_exists_async(&local_path).await && !self.config.overwrite {
             return Ok(DownloadResult {
                 ftp_path: file.path.clone(),
                 local_path: local_path.to_string_lossy().to_string(),
@@ -123,7 +142,7 @@ impl FtpDownloader {
 
         // Create parent directories if needed
         if let Some(parent) = local_path.parent() {
-            tokio::fs::create_dir_all(parent).await?;
+            ensure_dir_async(parent).await?;
         }
 
         // Get file size for progress tracking
@@ -149,14 +168,22 @@ impl FtpDownloader {
         
         match result {
             Ok(bytes_downloaded) => {
-                pb.finish_with_message(format!("✓ Downloaded {} ({} bytes)", file.basename, bytes_downloaded));
+                // Verify file was written correctly
+                let actual_size = get_file_size_async(&local_path).await.unwrap_or(0);
+                let verification_ok = actual_size == bytes_downloaded;
+                
+                pb.finish_with_message(format!("✓ Downloaded {} ({} bytes){}", 
+                    file.basename, 
+                    bytes_downloaded,
+                    if verification_ok { "" } else { " - Size mismatch!" }
+                ));
                 
                 Ok(DownloadResult {
                     ftp_path: file.path.clone(),
                     local_path: local_path.to_string_lossy().to_string(),
                     size_bytes: bytes_downloaded,
-                    success: true,
-                    error: None,
+                    success: verification_ok,
+                    error: if verification_ok { None } else { Some(format!("Size mismatch: expected {}, got {}", bytes_downloaded, actual_size)) },
                     duration_ms: duration.as_millis() as u64,
                 })
             }
@@ -671,6 +698,21 @@ mod tests {
         callback(512, 1024, "test.txt");
         callback(1024, 1024, "test.txt");
         callback(100, 0, "unknown_size.txt"); // Test with unknown total
+    }
+
+    #[tokio::test]
+    async fn test_datasus_with_cache_constructor() {
+        let downloader = FtpDownloader::new_datasus_with_cache().await;
+        assert!(downloader.is_ok());
+        
+        let downloader = downloader.unwrap();
+        
+        // Should use cache directory for downloads
+        assert!(downloader.config.output_dir.contains("downloads"));
+        assert!(downloader.config.preserve_structure);
+        assert_eq!(downloader.config.max_concurrent, 4);
+        assert_eq!(downloader.config.buffer_size, 8192);
+        assert!(!downloader.config.overwrite);
     }
 
     #[tokio::test]
