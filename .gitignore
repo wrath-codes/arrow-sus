@@ -119,4 +119,4 @@ Cargo.lock
 # Ignore some Github actions
 .github/workflows/sus-mirror.yml
 
-*/*downloads/
+**/*downloads*/
