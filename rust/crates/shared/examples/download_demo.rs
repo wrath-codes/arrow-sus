@@ -3,7 +3,7 @@ use shared::models::directory::{FtpFileSystemProvider, DirectoryEntry, FileSyste
 use shared::models::file::File;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("🚀 FTP Download Demo with Beautiful Progress Bars");
     println!();
 
