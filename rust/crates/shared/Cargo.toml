@@ -25,24 +25,10 @@ log = "0.4"
 dirs = "5.0"
 rayon = "1.10.0"
 once_cell = "1.21.3"
-kdam = {version = "0.6.3", features = ["derive", "rich", "rayon", "spinner", "gradient"]}
 env_logger = "0.11"
+num_cpus = "1.16"
+indicatif = {version = "0.18.0", features = ["rayon"]}
 
-[[example]]
-name = "download_test"
-path = "../../examples/download_test.rs"
-
-[[example]]
-name = "rich_download_demo"
-path = "../../examples/rich_download_demo.rs"
-
-[[example]]
-name = "parallel_download_demo"
-path = "../../examples/parallel_download_demo.rs"
-
-[[example]]
-name = "gradient_download_demo"
-path = "../../examples/gradient_download_demo.rs"
 
 [dev-dependencies]
 tokio-test = "0.4"
