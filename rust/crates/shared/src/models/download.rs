@@ -173,14 +173,29 @@ impl FtpDownloader {
 
     /// Download multiple files concurrently with individual progress bars
     pub async fn download_files(&self, files: Vec<&File>) -> Result<Vec<DownloadResult>> {
-        let mp = MultiProgress::new();
-        
         // Calculate total size for overall progress
         let total_size: u64 = files.iter().map(|f| f.size_bytes().unwrap_or(0)).sum();
         let overall_progress = Arc::new(AtomicU64::new(0));
         
-        // Create overall progress bar (will be displayed at the bottom)
-        let overall_pb = ProgressBar::new(total_size);
+        // Create a single MultiProgress instance to manage all progress bars
+        let mp = MultiProgress::new();
+        
+        // Pre-create all progress bars to ensure proper ordering
+        let mut progress_bars = Vec::new();
+        for file in &files {
+            let pb = mp.add(ProgressBar::new(file.size_bytes().unwrap_or(0)));
+            pb.set_style(
+                ProgressStyle::default_bar()
+                    .template("{msg}: [{bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+                    .map_err(|e| anyhow!("Failed to set progress bar template: {}", e))?
+                    .progress_chars("█▉▊▋▌▍▎▏ ")
+            );
+            pb.set_message(format!("{}", file.basename));
+            progress_bars.push(pb);
+        }
+        
+        // Create overall progress bar at the end
+        let overall_pb = mp.add(ProgressBar::new(total_size));
         overall_pb.set_style(
             ProgressStyle::default_bar()
                 .template("Overall: [{wide_bar:.green/blue}] {bytes}/{total_bytes} ({bytes_per_sec}) {msg}")
@@ -188,34 +203,20 @@ impl FtpDownloader {
                 .progress_chars("█▉▊▋▌▍▎▏ ")
         );
         overall_pb.set_message("Downloading files...");
-        let overall_pb = mp.add(overall_pb);
 
-        // Convert async method to sync for rayon - we'll create a simple blocking runtime
+        // Convert async method to sync for rayon
         let rt = tokio::runtime::Handle::current();
         let downloader_ref = Arc::new(self.clone());
         
-        // Use rayon to download files in parallel with proper progress bars
+        // Use rayon to download files in parallel with pre-assigned progress bars
         let results: Result<Vec<DownloadResult>> = files
             .par_iter()
-            .map(|file| {
-                let mp = mp.clone();
+            .zip(progress_bars.par_iter())
+            .map(|(file, pb)| {
                 let overall_pb = overall_pb.clone();
                 let overall_progress = overall_progress.clone();
                 let downloader = downloader_ref.clone();
                 let file = (*file).clone();
-
-                // Create individual progress bar for this file
-                let pb = ProgressBar::new(file.size_bytes().unwrap_or(0));
-                pb.set_style(
-                    ProgressStyle::default_bar()
-                        .template("{msg}: [{bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
-                        .map_err(|e| anyhow!("Failed to set progress bar template: {}", e))?
-                        .progress_chars("█▉▊▋▌▍▎▏ ")
-                );
-                pb.set_message(format!("{}", file.basename));
-
-                // Insert individual progress bar before the overall progress bar
-                let mp_pb = mp.insert_before(&overall_pb, pb);
 
                 // Use tokio block_in_place to run async code in rayon thread
                 let result = tokio::task::block_in_place(|| {
@@ -241,12 +242,12 @@ impl FtpDownloader {
                         }
 
                         // Download with dual progress tracking (individual + overall)
-                        let result = downloader.download_file_with_dual_progress(&file, &local_path, &mp_pb, &overall_progress, &overall_pb).await;
+                        let result = downloader.download_file_with_dual_progress(&file, &local_path, pb, &overall_progress, &overall_pb).await;
                         let duration = start_time.elapsed();
 
                         match result {
                             Ok(bytes_downloaded) => {
-                                mp_pb.finish_with_message(format!("✓ {}", file.basename));
+                                pb.finish_with_message(format!("✓ {}", file.basename));
                                 
                                 Ok(DownloadResult {
                                     ftp_path: file.path.clone(),
@@ -258,7 +259,7 @@ impl FtpDownloader {
                                 })
                             }
                             Err(e) => {
-                                mp_pb.finish_with_message(format!("✗ {}", file.basename));
+                                pb.finish_with_message(format!("✗ {}", file.basename));
                                 
                                 Ok(DownloadResult {
                                     ftp_path: file.path.clone(),
