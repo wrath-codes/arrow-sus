@@ -28,6 +28,7 @@ once_cell = "1.21.3"
 env_logger = "0.11"
 num_cpus = "1.16"
 indicatif = {version = "0.18.0", features = ["rayon"]}
+console = "0.15"
 
 
 [dev-dependencies]

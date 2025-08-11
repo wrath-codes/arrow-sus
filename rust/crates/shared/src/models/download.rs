@@ -1,6 +1,7 @@
 use crate::models::file::File;
 use crate::models::directory::FtpFileSystemProvider;
-use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
+use indicatif::{ProgressBar, ProgressStyle, MultiProgress, HumanDuration};
+use console::{Style, Term};
 
 use std::path::Path;
 use std::sync::Arc;
@@ -171,42 +172,74 @@ impl FtpDownloader {
         }
     }
 
-    /// Download multiple files concurrently with individual progress bars
+    /// Download multiple files concurrently with beautiful progress bars
     pub async fn download_files(&self, files: Vec<&File>) -> Result<Vec<DownloadResult>> {
+        let start_time = std::time::Instant::now();
+        
         // Calculate total size for overall progress
         let total_size: u64 = files.iter().map(|f| f.size_bytes().unwrap_or(0)).sum();
         let overall_progress = Arc::new(AtomicU64::new(0));
         
+        // Create beautiful colored styles
+        let green_bold = Style::new().green().bold();
+        let blue_bold = Style::new().blue().bold();
+        
         // Create a single MultiProgress instance to manage all progress bars
         let mp = MultiProgress::new();
         
-        // Pre-create all progress bars to ensure proper ordering
+        // Show startup message
+        mp.println(format!("    {} Downloading {} files ({:.1} MB total)", 
+            blue_bold.apply_to("Starting"), 
+            files.len(),
+            total_size as f64 / (1024.0 * 1024.0)
+        )).unwrap();
+        
+        // Pre-create all progress bars with beautiful styling
         let mut progress_bars = Vec::new();
+        
+        // Determine appropriate template based on terminal width
+        let term_width = Term::stdout().size().1;
+        let file_template = if term_width > 100 {
+            "{spinner:.cyan} {msg:>20.cyan.bold} [{bar:40.cyan/blue}] {bytes:>8}/{total_bytes:<8} ({bytes_per_sec:>10}, {eta:>4})"
+        } else {
+            "{spinner:.cyan} {msg:>15.cyan.bold} [{bar:25.cyan/blue}] {bytes}/{total_bytes} ({eta})"
+        };
+        
         for file in &files {
             let pb = mp.add(ProgressBar::new(file.size_bytes().unwrap_or(0)));
             pb.set_style(
-                ProgressStyle::default_bar()
-                    .template("{msg}: [{bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+                ProgressStyle::with_template(file_template)
                     .map_err(|e| anyhow!("Failed to set progress bar template: {}", e))?
                     .progress_chars("█▉▊▋▌▍▎▏ ")
+                    .tick_strings(&[
+                        "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
+                    ])
             );
             pb.set_message(format!("{}", file.basename));
+            pb.enable_steady_tick(std::time::Duration::from_millis(100));
             progress_bars.push(pb);
         }
         
-        // Create overall progress bar at the end
+        // Create overall progress bar at the end with beautiful styling
+        let overall_template = if term_width > 100 {
+            "{prefix:>12.green.bold} [{wide_bar:60.green/blue}] {bytes:>10}/{total_bytes:<10} ({bytes_per_sec:>12}) {msg}"
+        } else {
+            "{prefix:>12.green.bold} [{wide_bar:40.green/blue}] {bytes}/{total_bytes} {msg}"
+        };
+        
         let overall_pb = mp.add(ProgressBar::new(total_size));
         overall_pb.set_style(
-            ProgressStyle::default_bar()
-                .template("Overall: [{wide_bar:.green/blue}] {bytes}/{total_bytes} ({bytes_per_sec}) {msg}")
+            ProgressStyle::with_template(overall_template)
                 .map_err(|e| anyhow!("Failed to set overall progress bar template: {}", e))?
-                .progress_chars("█▉▊▋▌▍▎▏ ")
+                .progress_chars("=> ")
         );
-        overall_pb.set_message("Downloading files...");
+        overall_pb.set_prefix("Downloading");
+        overall_pb.set_message("files...");
 
         // Convert async method to sync for rayon
         let rt = tokio::runtime::Handle::current();
         let downloader_ref = Arc::new(self.clone());
+        let mp_clone = mp.clone();
         
         // Use rayon to download files in parallel with pre-assigned progress bars
         let results: Result<Vec<DownloadResult>> = files
@@ -217,6 +250,8 @@ impl FtpDownloader {
                 let overall_progress = overall_progress.clone();
                 let downloader = downloader_ref.clone();
                 let file = (*file).clone();
+                let mp_clone = mp_clone.clone();
+                let green_bold = green_bold.clone();
 
                 // Use tokio block_in_place to run async code in rayon thread
                 let result = tokio::task::block_in_place(|| {
@@ -241,13 +276,34 @@ impl FtpDownloader {
                             tokio::fs::create_dir_all(parent).await?;
                         }
 
+                        // Show download start message
+                        let size_mb = file.size_bytes().unwrap_or(0) as f64 / (1024.0 * 1024.0);
+                        mp_clone.println(format!(
+                            "    {:>12} {} ({:.1} MB)",
+                            green_bold.apply_to("Downloading"),
+                            file.basename,
+                            size_mb
+                        )).unwrap();
+
                         // Download with dual progress tracking (individual + overall)
                         let result = downloader.download_file_with_dual_progress(&file, &local_path, pb, &overall_progress, &overall_pb).await;
                         let duration = start_time.elapsed();
 
                         match result {
                             Ok(bytes_downloaded) => {
-                                pb.finish_with_message(format!("✓ {}", file.basename));
+                                let mb_downloaded = bytes_downloaded as f64 / (1024.0 * 1024.0);
+                                let speed = mb_downloaded / duration.as_secs_f64();
+                                
+                                pb.finish_with_message(format!("✓ {:.1} MB in {}", mb_downloaded, HumanDuration(duration)));
+                                
+                                mp_clone.println(format!(
+                                    "    {:>12} {} ({:.1} MB in {} @ {:.1} MB/s)",
+                                    green_bold.apply_to("Finished"),
+                                    file.basename,
+                                    mb_downloaded,
+                                    HumanDuration(duration),
+                                    speed
+                                )).unwrap();
                                 
                                 Ok(DownloadResult {
                                     ftp_path: file.path.clone(),
@@ -259,7 +315,14 @@ impl FtpDownloader {
                                 })
                             }
                             Err(e) => {
-                                pb.finish_with_message(format!("✗ {}", file.basename));
+                                pb.finish_with_message(format!("✗ Failed: {}", e));
+                                
+                                mp_clone.println(format!(
+                                    "    {:>12} {} ({})",
+                                    Style::new().red().bold().apply_to("Failed"),
+                                    file.basename,
+                                    e
+                                )).unwrap();
                                 
                                 Ok(DownloadResult {
                                     ftp_path: file.path.clone(),
@@ -278,8 +341,21 @@ impl FtpDownloader {
             })
             .collect();
 
-        // Finish overall progress bar
-        overall_pb.finish_with_message("All downloads completed!");
+        // Finish overall progress bar with beautiful completion message
+        let total_duration = start_time.elapsed();
+        let total_mb = total_size as f64 / (1024.0 * 1024.0);
+        let avg_speed = total_mb / total_duration.as_secs_f64();
+        
+        overall_pb.finish_with_message(format!("completed in {} @ {:.1} MB/s avg", HumanDuration(total_duration), avg_speed));
+        
+        mp.println(format!(
+            "    {:>12} {} files ({:.1} MB) in {} @ {:.1} MB/s average",
+            green_bold.apply_to("Completed"),
+            files.len(),
+            total_mb,
+            HumanDuration(total_duration),
+            avg_speed
+        )).unwrap();
 
         results
     }
