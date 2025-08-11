@@ -129,15 +129,18 @@ impl FtpDownloader {
         // Get file size for progress tracking
         let total_size = file.size_bytes().unwrap_or(0);
 
-        // Create progress bar
+        // Create progress bar with beautiful styling
         let pb = ProgressBar::new(total_size);
         pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+            ProgressStyle::with_template("{msg}\n{spinner:.yellow} [{elapsed_precise}] [{wide_bar:.magenta}] {bytes:>8.blue}/{total_bytes:<8.blue} ({bytes_per_sec:>10.blue}, {eta:>4.blue})")
                 .map_err(|e| anyhow!("Failed to set progress bar template: {}", e))?
-                .progress_chars("#>-")
+                .progress_chars("█▉▊▋▌▍▎▏ ")
+                .tick_strings(&[
+                    "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
+                ])
         );
         pb.set_message(format!("Downloading {}", file.basename));
+        pb.enable_steady_tick(std::time::Duration::from_millis(100));
 
         // Perform the download
         let result = self.download_file_with_progress(file, &local_path, &pb).await;
