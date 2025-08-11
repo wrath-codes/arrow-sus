@@ -4,6 +4,8 @@ use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
 
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use rayon::prelude::*;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
 use futures::io::AsyncReadExt;
@@ -58,6 +60,7 @@ pub struct DownloadResult {
 pub type ProgressCallback = Arc<dyn Fn(u64, u64, &str) + Send + Sync>;
 
 /// FTP file downloader with progress tracking
+#[derive(Clone)]
 pub struct FtpDownloader {
     /// FTP provider for connections
     provider: FtpFileSystemProvider,
@@ -171,105 +174,210 @@ impl FtpDownloader {
     /// Download multiple files concurrently with individual progress bars
     pub async fn download_files(&self, files: Vec<&File>) -> Result<Vec<DownloadResult>> {
         let mp = MultiProgress::new();
-        let mut tasks = Vec::new();
+        
+        // Calculate total size for overall progress
+        let total_size: u64 = files.iter().map(|f| f.size_bytes().unwrap_or(0)).sum();
+        let overall_progress = Arc::new(AtomicU64::new(0));
+        
+        // Create overall progress bar (will be displayed at the bottom)
+        let overall_pb = ProgressBar::new(total_size);
+        overall_pb.set_style(
+            ProgressStyle::default_bar()
+                .template("Overall: [{wide_bar:.green/blue}] {bytes}/{total_bytes} ({bytes_per_sec}) {msg}")
+                .map_err(|e| anyhow!("Failed to set overall progress bar template: {}", e))?
+                .progress_chars("█▉▊▋▌▍▎▏ ")
+        );
+        overall_pb.set_message("Downloading files...");
+        let overall_pb = mp.add(overall_pb);
 
-        // Limit concurrent downloads
-        let semaphore = Arc::new(tokio::sync::Semaphore::new(self.config.max_concurrent));
+        // Convert async method to sync for rayon - we'll create a simple blocking runtime
+        let rt = tokio::runtime::Handle::current();
+        let downloader_ref = Arc::new(self.clone());
+        
+        // Use rayon to download files in parallel with proper progress bars
+        let results: Result<Vec<DownloadResult>> = files
+            .par_iter()
+            .map(|file| {
+                let mp = mp.clone();
+                let overall_pb = overall_pb.clone();
+                let overall_progress = overall_progress.clone();
+                let downloader = downloader_ref.clone();
+                let file = (*file).clone();
 
-        for file in files {
-            let downloader = FtpDownloader {
-                provider: self.provider.clone(),
-                config: self.config.clone(),
-                progress_callback: self.progress_callback.clone(),
-            };
-            let file_clone = file.clone();
-            let mp_clone = mp.clone();
-            let semaphore_clone = semaphore.clone();
-
-            let task = tokio::spawn(async move {
-                let _permit = semaphore_clone.acquire().await.unwrap();
-                
-                let start_time = std::time::Instant::now();
-                let local_path = downloader.get_local_path(&file_clone)?;
-                
-                // Check if file exists and should not be overwritten
-                if local_path.exists() && !downloader.config.overwrite {
-                    return Ok(DownloadResult {
-                        ftp_path: file_clone.path.clone(),
-                        local_path: local_path.to_string_lossy().to_string(),
-                        size_bytes: file_clone.size_bytes().unwrap_or(0),
-                        success: false,
-                        error: Some("File exists and overwrite is disabled".to_string()),
-                        duration_ms: start_time.elapsed().as_millis() as u64,
-                    });
-                }
-
-                // Create parent directories if needed
-                if let Some(parent) = local_path.parent() {
-                    tokio::fs::create_dir_all(parent).await?;
-                }
-
-                let total_size = file_clone.size_bytes().unwrap_or(0);
-
-                // Create progress bar for this file
-                let pb = ProgressBar::new(total_size);
+                // Create individual progress bar for this file
+                let pb = ProgressBar::new(file.size_bytes().unwrap_or(0));
                 pb.set_style(
                     ProgressStyle::default_bar()
-                        .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+                        .template("{msg}: [{bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
                         .map_err(|e| anyhow!("Failed to set progress bar template: {}", e))?
-                        .progress_chars("#>-")
+                        .progress_chars("█▉▊▋▌▍▎▏ ")
                 );
-                pb.set_message(format!("Downloading {}", file_clone.basename));
+                pb.set_message(format!("{}", file.basename));
 
-                // Add to multi-progress
-                let mp_pb = mp_clone.add(pb);
+                // Insert individual progress bar before the overall progress bar
+                let mp_pb = mp.insert_before(&overall_pb, pb);
 
-                // Download with progress
-                let result = downloader.download_file_with_progress(&file_clone, &local_path, &mp_pb).await;
-                let duration = start_time.elapsed();
-
-                match result {
-                    Ok(bytes_downloaded) => {
-                        mp_pb.finish_with_message(format!("✓ {}", file_clone.basename));
+                // Use tokio block_in_place to run async code in rayon thread
+                let result = tokio::task::block_in_place(|| {
+                    rt.block_on(async {
+                        let start_time = std::time::Instant::now();
+                        let local_path = downloader.get_local_path(&file)?;
                         
-                        Ok(DownloadResult {
-                            ftp_path: file_clone.path.clone(),
-                            local_path: local_path.to_string_lossy().to_string(),
-                            size_bytes: bytes_downloaded,
-                            success: true,
-                            error: None,
-                            duration_ms: duration.as_millis() as u64,
-                        })
-                    }
-                    Err(e) => {
-                        mp_pb.finish_with_message(format!("✗ {}", file_clone.basename));
-                        
-                        Ok(DownloadResult {
-                            ftp_path: file_clone.path.clone(),
-                            local_path: local_path.to_string_lossy().to_string(),
-                            size_bytes: 0,
-                            success: false,
-                            error: Some(e.to_string()),
-                            duration_ms: duration.as_millis() as u64,
-                        })
-                    }
-                }
-            });
+                        // Check if file exists and should not be overwritten
+                        if local_path.exists() && !downloader.config.overwrite {
+                            return Ok(DownloadResult {
+                                ftp_path: file.path.clone(),
+                                local_path: local_path.to_string_lossy().to_string(),
+                                size_bytes: file.size_bytes().unwrap_or(0),
+                                success: false,
+                                error: Some("File exists and overwrite is disabled".to_string()),
+                                duration_ms: start_time.elapsed().as_millis() as u64,
+                            });
+                        }
 
-            tasks.push(task);
+                        // Create parent directories if needed
+                        if let Some(parent) = local_path.parent() {
+                            tokio::fs::create_dir_all(parent).await?;
+                        }
+
+                        // Download with dual progress tracking (individual + overall)
+                        let result = downloader.download_file_with_dual_progress(&file, &local_path, &mp_pb, &overall_progress, &overall_pb).await;
+                        let duration = start_time.elapsed();
+
+                        match result {
+                            Ok(bytes_downloaded) => {
+                                mp_pb.finish_with_message(format!("✓ {}", file.basename));
+                                
+                                Ok(DownloadResult {
+                                    ftp_path: file.path.clone(),
+                                    local_path: local_path.to_string_lossy().to_string(),
+                                    size_bytes: bytes_downloaded,
+                                    success: true,
+                                    error: None,
+                                    duration_ms: duration.as_millis() as u64,
+                                })
+                            }
+                            Err(e) => {
+                                mp_pb.finish_with_message(format!("✗ {}", file.basename));
+                                
+                                Ok(DownloadResult {
+                                    ftp_path: file.path.clone(),
+                                    local_path: local_path.to_string_lossy().to_string(),
+                                    size_bytes: 0,
+                                    success: false,
+                                    error: Some(e.to_string()),
+                                    duration_ms: duration.as_millis() as u64,
+                                })
+                            }
+                        }
+                    })
+                });
+
+                result
+            })
+            .collect();
+
+        // Finish overall progress bar
+        overall_pb.finish_with_message("All downloads completed!");
+
+        results
+    }
+
+    /// Internal method to download a file with dual progress tracking (individual + overall)
+    async fn download_file_with_dual_progress(
+        &self,
+        file: &File,
+        local_path: &Path,
+        pb: &ProgressBar,
+        overall_progress: &Arc<AtomicU64>,
+        overall_pb: &ProgressBar,
+    ) -> Result<u64> {
+        use suppaftp::{AsyncRustlsFtpStream, Mode, FtpError};
+
+        // Create FTP connection
+        let mut ftp_stream = AsyncRustlsFtpStream::connect(&format!("{}:{}", self.provider.host, self.provider.port)).await?;
+        ftp_stream.login("anonymous", "").await?;
+        ftp_stream.set_mode(Mode::Passive);
+
+        // Navigate to the file's directory
+        let ftp_dir = if let Some(parent) = std::path::Path::new(&file.path).parent() {
+            parent.to_string_lossy().to_string()
+        } else {
+            "/".to_string()
+        };
+
+        let full_ftp_path = if ftp_dir.starts_with('/') {
+            format!("{}{}", self.provider.base_path, ftp_dir)
+        } else {
+            format!("{}/{}", self.provider.base_path, ftp_dir)
+        };
+
+        ftp_stream.cwd(&full_ftp_path).await?;
+
+        // Open file for writing
+        let mut local_file = TokioFile::create(local_path).await?;
+
+        // Clone for use in the closure
+        let pb_clone = pb.clone();
+        let overall_progress_clone = overall_progress.clone();
+        let overall_pb_clone = overall_pb.clone();
+        let callback = self.progress_callback.clone();
+        let file_basename = file.basename.clone();
+        let expected_size = file.size_bytes().unwrap_or(0);
+
+        // Use the retr method with a closure for dual progress tracking
+        let file_data = ftp_stream
+            .retr(&file.basename, move |mut data_stream| {
+                let pb_clone = pb_clone.clone();
+                let overall_progress_clone = overall_progress_clone.clone();
+                let overall_pb_clone = overall_pb_clone.clone();
+                let callback = callback.clone();
+                let file_basename = file_basename.clone();
+                
+                Box::pin(async move {
+                    let mut file_buffer = Vec::new();
+                    let mut total_downloaded = 0u64;
+                    let mut chunk_buffer = vec![0u8; 8192]; // Use reasonable buffer size
+
+                    loop {
+                        match data_stream.read(&mut chunk_buffer).await {
+                            Ok(0) => break, // EOF
+                            Ok(n) => {
+                                // Append this chunk to our file buffer
+                                file_buffer.extend_from_slice(&chunk_buffer[..n]);
+                                total_downloaded += n as u64;
+                                
+                                // Update individual progress bar
+                                pb_clone.set_position(total_downloaded);
+                                
+                                // Update overall progress
+                                let current_overall = overall_progress_clone.fetch_add(n as u64, Ordering::SeqCst) + n as u64;
+                                overall_pb_clone.set_position(current_overall);
+
+                                // Call progress callback if provided
+                                if let Some(ref callback) = callback {
+                                    callback(total_downloaded, expected_size, &file_basename);
+                                }
+                            }
+                            Err(e) => return Err(FtpError::ConnectionError(e)),
+                        }
+                    }
+
+                    // Return all data and the stream
+                    Ok((file_buffer, data_stream))
+                })
+            })
+            .await?;
+
+        // Write all data to file
+        if !file_data.is_empty() {
+            local_file.write_all(&file_data).await?;
         }
 
-        // Wait for all downloads to complete
-        let mut results = Vec::new();
-        for task in tasks {
-            match task.await {
-                Ok(Ok(result)) => results.push(result),
-                Ok(Err(e)) => return Err(e),
-                Err(e) => return Err(anyhow!("Task join error: {}", e)),
-            }
-        }
+        // Close FTP connection
+        let _ = ftp_stream.quit().await;
 
-        Ok(results)
+        Ok(file_data.len() as u64)
     }
 
     /// Internal method to download a file with progress tracking
