@@ -840,7 +840,7 @@ mod tests {
                 println!("❌ PAPA2404.dbc not found in /SIASUS/200801_/Dados");
                 // List what files are available for debugging
                 println!("Available .dbc files:");
-                for (name, entry) in directory_content.iter().take(10) {
+                for (_name, entry) in directory_content.iter().take(10) {
                     if let DirectoryEntry::File(file) = entry {
                         if file.has_extension("dbc") {
                             println!("  - {} ({} bytes)", file.basename, file.size_bytes().unwrap_or(0));

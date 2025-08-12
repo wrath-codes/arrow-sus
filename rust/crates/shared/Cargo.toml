@@ -29,6 +29,10 @@ env_logger = "0.11"
 num_cpus = "1.16"
 indicatif = {version = "0.18.0", features = ["rayon"]}
 console = "0.15"
+encoding_rs = "0.8.35"
+encoding = "0.2"
+explode = "0.1.2"
+dbase = "0.6.0"
 
 
 [dev-dependencies]

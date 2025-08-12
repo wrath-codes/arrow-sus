@@ -9,6 +9,7 @@ pub mod regex_patterns;
 pub mod date_utils;
 pub mod geo_utils;
 pub mod group_info;
+pub mod dbase_utils;
 
 pub use file_info::*;
 pub use file::*;
@@ -34,3 +35,5 @@ pub use geo_utils::*;
 pub use group_info::*;
 // Re-export download module
 pub use download::*;
+// Re-export dbase utils module
+pub use dbase_utils::*;
