@@ -10,6 +10,7 @@ pub mod date_utils;
 pub mod geo_utils;
 pub mod group_info;
 pub mod dbase_utils;
+pub mod polars_utils;
 
 pub use file_info::*;
 pub use file::*;
@@ -37,3 +38,5 @@ pub use group_info::*;
 pub use download::*;
 // Re-export dbase utils module
 pub use dbase_utils::*;
+// Re-export polars utils module
+pub use polars_utils::*;
