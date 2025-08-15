@@ -13,5 +13,6 @@ pub use des::{
     dbc_to_polars_schema, create_dbf_reader_from_file,
 };
 pub use scan::{
-    DbcScanner, read_dbc, read_dbf, scan_dbc, scan_dbf,
+    DbcScanner, DbcConfig, read_dbc, read_dbc_with_config, read_dbc_columns, scan_dbc_lazy,
+    read_dbf, read_dbf_columns, scan_dbf_lazy, scan_dbc, scan_dbf,
 };
